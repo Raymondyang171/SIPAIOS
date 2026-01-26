@@ -32,3 +32,13 @@ misc
 *.tar.gz
 
 artifacts/baselines/
+# ---- Local baseline artifacts (do NOT commit dumps) ----
+/artifacts/baselines/
+
+# ---- Windows ADS leftovers from downloads ----
+*:Zone.Identifier
+
+# ---- Temporary download bundles (keep repo clean) ----
+phase1_*_bundle.zip
+phase1_ops_*.zip
+phase1_step1_*.zip
