@@ -1,0 +1,4 @@
+# Suggested ignores for local baseline artifacts
+artifacts/baselines/
+*.dump
+*.dump.sha256
