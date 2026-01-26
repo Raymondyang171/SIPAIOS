@@ -1,0 +1,424 @@
+ERP/MES/WMS 平台完整計畫書 v2.1（Production-Hardened｜最優解整合版）2026/01/21
+
+核心哲學：穩定壓倒一切（目標：上線後半夜不響手機）
+適用場景：SaaS 孵化 → On-Prem 搬遷（Hybrid Appliance）
+規模假設：每客戶 <50 使用者（含 PDA/設備）；每年新客戶 <5
+交付策略：一套代碼、兩種交付、同一套維運防線
+v2.1 主軸：補齊「防禦性設計 + 維運基線 + 遷移可驗證」，並移除 <5 客戶階段的過度工程
+
+1) 目標與邊界（Scope & Guardrails）
+
+SaaS 目標
+
+快速交付，但必須做到：客戶 A 的事故 不拖垮 客戶 B
+
+以「每客戶獨立 Stack」為上限策略（小客數可承受，換取隔離與搬遷零痛苦）
+
+On-Prem 目標
+
+「整機搬遷」一致：DB + Storage + Config 一包帶走
+
+RTO（停機）< 2 小時（適用 DB <100GB 的 Offline Copy）
+
+DB >100GB：提供「選配 Replica 切換」方案（非 v2.1 必交付）
+
+明確不做（避免過度設計）
+
+❌ 不預設 PgBouncer（<50 使用者，App 端 pool 足夠；需要時再加）
+
+❌ 不預設硬體 watchdog（Docker restart policy + 健康檢查優先）
+
+❌ 不做複雜 GDPR 物理刪除（採「軟刪除 + 脫敏」保留稽核軌跡）
+
+2) 架構拓撲（Per-Tenant Stack + Resource Fences）
+2.1 標準元件（每客戶一套）
+
+Gateway：Nginx
+
+TLS 終止、靜態快取、IP allowlist、基礎 DDoS/Rate Limit
+
+App Core：Node.js 或 Go（無狀態）
+
+API、RBAC/Scope、設備信任、整合端點、版本路由
+
+Worker：Node.js 或 Go（獨立容器）
+
+報表、匯入匯出、排程、Webhook 重送、維護任務（Vacuum/Retention/Log Analyze）
+
+DB：PostgreSQL 15/16+
+
+Cache/Queue：Redis 7+
+
+Storage：MinIO 或本地 Volume（On-Prem 常見）
+
+2.2 資源柵欄（最優解：可在「非 Swarm」確實生效）
+
+注意：Compose 的 deploy 區塊在某些環境可能被忽略
+因此 v2.1 範本以「可落地生效」寫法為主，deploy 僅作為可選補充。
+
+services:
+  app:
+    image: erp-core:v2.1
+    restart: always
+    cpus: "1.0"
+    mem_limit: 2g
+    mem_reservation: 512m
+    pids_limit: 256
+
+  worker:
+    image: erp-worker:v2.1
+    restart: always
+    environment:
+      JOB_TIMEOUT_MS: 900000
+    cpus: "1.0"
+    mem_limit: 2g
+    mem_reservation: 512m
+    pids_limit: 256
+
+  db:
+    image: postgres:16-alpine
+    restart: always
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    mem_limit: 3g
+    # 正確做法：用 command 注入 runtime 參數（而不是 POSTGRES_INITDB_ARGS）
+    command:
+      - "postgres"
+      - "-c" ; "log_min_duration_statement=500"
+      - "-c" ; "autovacuum_max_workers=3"
+      - "-c" ; "autovacuum_naptime=10s"
+      - "-c" ; "autovacuum_vacuum_scale_factor=0.05"
+      - "-c" ; "autovacuum_analyze_scale_factor=0.02"
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    mem_limit: 512m
+
+
+為什麼不使用 POSTGRES_INITDB_ARGS -c ...
+
+POSTGRES_INITDB_ARGS 是給 initdb 階段用的參數，不等同於 DB runtime 設定
+
+Autovacuum 參數本身是 PostgreSQL 正規可調選項
+
+3) 防禦性設計（Defensive Design｜讓事故變小、變慢、可回復）
+3.1 Rate Limiting（雙層：Nginx + App）
+
+Nginx（IP 級）
+
+limit_req_zone：50 req/s，burst 20（抵擋粗暴流量）
+
+App（業務級，Redis 計數）
+
+Login：5 次失敗/分鐘 → 鎖帳號或鎖 IP（可配置）
+
+Report Export：5 次/小時（避免 IO 被挖礦）
+
+General API：300 次/分鐘/裝置（避免 PDA Bug 死循環）
+
+3.2 Timeout & Circuit Breaker（超時就是「穩定」的一部分）
+
+App → DB：query timeout（例如 10~30s 分級）
+
+App → 外部 ERP/Webhook：30s（一般）、60s（大型 payload）
+
+Worker 任務：硬超時（Promise.race / context timeout）
+
+一般任務：30s
+
+報表：15m（上限）
+
+失敗任務 TTL：7 天自動清除（避免 Redis 撐爆）
+
+3.3 Webhook：重試 + 降級 + 一鍵停用
+
+重試策略（Exponential Backoff）
+
+1m → 5m → 30m → 2h → … → 最多 10 次
+
+超過：標記 dead + 告警
+
+Webhook 認證模式（v2.1 必備）
+
+HMAC：預設
+
+BEARER：降級（老舊 ERP）
+
+IP_ONLY：最低安全（僅 On-Prem、內網、需明確勾選風險確認）
+
+ALTER TABLE sys_webhooks
+  ADD COLUMN auth_mode TEXT NOT NULL DEFAULT 'hmac_sha256',
+  ADD COLUMN bearer_token TEXT;
+
+4) 看板即時策略（v2.1：預設輪詢，企業版選配 WebSocket）
+
+標準版（預設）：短輪詢 5 秒
+
+企業選配：WebSocket（含心跳、斷線重連、降級回輪詢）
+
+設計原則
+
+看板允許 5~10 秒延遲 → 用輪詢換穩定
+
+輪詢端點要做：快取（例如 1~2 秒）+ ETag/If-None-Match + Rate Limit
+
+5) PDA & 設備治理（Device Trust + Kiosk）
+5.1 PDA 強制更新（必備）
+
+DB 記錄最低版本 sys_min_app_version
+
+PDA 啟動/喚醒 → /api/v1/system/version-check
+
+< min_version：全畫面阻擋要求更新
+
+SaaS：導 Google Play/MDM
+
+On-Prem：提供 /download/latest.apk
+
+5.2 PDA Kiosk Mode（v2.1 新增交付文件）
+
+方案 A（推薦）：Android「Lock Task / Dedicated device」
+
+Android 官方文件有「Lock task mode」可將裝置鎖定在指定 App
+
+方案 B（企業）：MDM（Android Enterprise）
+
+方案 C：工業 PDA 原廠（Zebra/Honeywell/Chainway 等）
+
+交付物：docs/pda-device-management.md
+
+6) 核心資料模型（Schema v2.1｜精簡但防事故）
+6.1 必備核心表
+
+Tenant / Org：sys_tenants
+
+Users / Roles / Depts：sys_users, sys_roles, sys_depts
+
+RBAC：sys_permissions, sys_role_permissions, sys_data_scopes
+
+Device：sys_devices (last_active_at, app_version, revoked_at)
+
+License：sys_license (expires_at, grace_period_days, status)
+
+Ops：sys_schema_version (int)
+
+Audit：sys_audit_logs（事件字典化）
+
+6.2 Idempotency（v2.1 必備：避免重複入庫/扣庫）
+CREATE TABLE sys_idempotency_keys (
+  id BIGSERIAL PRIMARY KEY,
+  idempotency_key TEXT UNIQUE NOT NULL,
+  request_hash TEXT NOT NULL,
+  response_status INT,
+  response_body JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  expires_at TIMESTAMPTZ DEFAULT NOW() + INTERVAL '24 hours'
+);
+
+CREATE INDEX idx_idempotency_expires ON sys_idempotency_keys(expires_at);
+
+
+規範：
+
+寫入型 API 必須要求 Idempotency-Key
+
+同 key 不同 payload → 回 409（防止「同一把鑰匙開不同門」）
+
+6.3 Retention（避免爆盤的底線）
+
+交易資料：線上 2~3 年；歸檔 5~7 年（視客戶合規）
+
+審計日誌：線上 1~2 年；歸檔 10 年
+
+Webhook logs：線上 90 天；歸檔 1 年
+
+報表產物：30 天（或 7 天，依客戶）
+
+暫存資料：7 天內刪除
+
+Worker 每日/每週排程跑 cleanup（標準交付）
+
+7) PostgreSQL 維護基線（v2.1：避免越用越慢）
+7.1 Autovacuum（調優 + 監控）
+
+DB 預設 Autovacuum 開啟；v2.1 對高頻表做「更積極」策略（scale factor 下修）
+
+Worker 每日離峰執行：
+
+VACUUM (ANALYZE) 針對高頻更新表（inventory_balance / work_orders / production_reports / sys_audit_logs）
+
+VACUUM 是 PostgreSQL 標準維護命令（可帶 ANALYZE）
+
+7.2 慢查詢監控（v2.1 必備）
+
+DB：log_min_duration_statement=500ms 記錄慢查詢
+
+Worker 每日分析慢查詢 log
+
+>5s 立即告警
+
+產出「Top SQL、次數、建議索引」報告（存入 sys_ops_reports）
+
+8) API 版本管理（Versioning & Compatibility）
+
+URL Path Versioning：/api/v1/...、/api/v2/...
+
+支援政策：N-1（舊版保留 6~12 個月）
+
+破壞性變更：只能在 v2 發生
+
+DB schema_version 硬檢查
+
+App 啟動比對 sys_schema_version
+
+不匹配：直接拒啟動（避免「拿舊 App 跑新 DB」）
+
+9) Worker 佇列（Priority + Quota + DLQ）
+
+Priority（數字越小越急）
+
+P1：使用者等待中（即時匯出、即時計算）
+
+P2：流程任務（訂單處理、庫存調整、通知）
+
+P3：排程（排程報表、資料同步）
+
+P4：維護（歸檔、清理、月結）
+
+Queue 配額
+
+防止 P4 把佇列塞滿，P1 卡死
+
+10) 遷移標準（SaaS → On-Prem）
+
+Offline Copy（標準交付）
+
+進入 Maintenance（只讀）
+
+export：DB dump + storage snapshot + config + manifest（含 schema_version、checksums）
+
+transfer：加密 .tar.gz
+
+import：還原 DB + volumes
+
+health check → 切換（PDA 掃 QR / Web 改 endpoint）
+
+SaaS 保留 30 天只讀（回滾保險）
+
+Replica Switch（選配）
+
+DB >100GB、停機 <15 分鐘需求才啟用
+
+11) 備份與 DR（v2.1：剛好夠用的防線）
+
+每日備份（必備）
+
+DB 全量 dump + config + storage 快照
+
+本地 7 天、異地 30 天（客戶指定 S3/FTP）
+
+演練頻率（最優解）
+
+季度：完整性驗證 + 測試環境還原（不影響生產）
+
+年度：全流程 DR（測 RTO/RPO）
+
+重大升級前：必做一次還原驗證
+
+12) 監控與可觀測性（不預設 Prometheus，先讓你活下來）
+
+/health：DB/Redis/Storage/Queue 基本狀態
+
+/api/v1/admin/metrics（JSON）：requests/min、db connections、queue depth、disk usage
+
+Opt-in 健康回報（選配）
+
+每週回報：版本、license 到期、磁碟、錯誤數（不含業務資料）
+
+13) 前端穩定性（Global Error Boundary + 自動回報）
+
+GlobalErrorBoundary
+
+白屏 → 顯示「重新整理 / 聯繫支援」
+
+自動送出錯誤：message、stack、UA、timestamp、tenant_id、device_id
+
+14) 效能 SLA（v2.1 必備）
+API 類型	P50	P95	P99	超時
+查詢（單筆）	<100ms	<300ms	<500ms	10s
+查詢（列表）	<200ms	<500ms	<1s	15s
+寫入（單筆）	<150ms	<400ms	<800ms	10s
+批次操作	<500ms	<2s	<5s	30s
+報表匯出	<5s	<30s	<60s	900s
+
+監控方式：每個 API 記錄 duration；每小時計算 P50/P95/P99；P99 超標告警
+
+15) 交付物（Artifacts｜v2.1 完整清單）
+文件（Docs）
+
+install.md（含 SaaS/On-Prem）
+
+ops-runbook.md（升級、備份、告警、故障排除）
+
+migration-playbook.md（Offline Copy SOP）
+
+integration-guide.md（Webhook/HMAC/Bearer/IP-only 範例）
+
+rbac-matrix.xlsx
+
+audit-events.csv
+
+hardware-sizing.pdf
+
+✅ pda-device-management.md（Kiosk/MDM/原廠模式）
+
+腳本（Scripts）
+
+install.sh
+
+update.sh（含 rollback）
+
+backup.sh / restore.sh
+
+export.sh / import.sh（搬遷工具）
+
+export-diagnostic.sh
+
+retention-cleanup.sh
+
+vacuum-maintenance.sh（或由 worker cron 執行）
+
+程式模組（Code）
+
+middleware/rate_limiter.ts
+
+middleware/idempotency.ts
+
+middleware/scope_injector.ts
+
+worker/job_queue.ts（timeout + retry + priority + DLQ）
+
+web/ErrorBoundary.tsx
+
+db/migrations/001_init_v2_1.sql（含 schema_version、idempotency、webhooks auth_mode）
+
+16) v2.1 的「最優解」總結與取捨（含優缺點）
+
+把 HMAC 做成「預設」但提供降級
+
+優點：整合不卡關、可落地
+
+缺點：降級模式風險上升 → 用「IP allowlist + 告警 + 可停用」補回控管
+
+看板預設輪詢，WebSocket 變企業選配
+
+優點：工廠弱網更穩、維護成本低
+
+缺點：即時性略降（但 5 秒延遲通常可接受）
+
+Idempotency + Vacuum + 慢查詢監控 = 三大「半夜不響手機」組合
+
+優點：直接把最常見事故（重複寫入、DB 膨脹、效能退化）打掉
+
+缺點：需要你在 v2.1 一開始就把規範寫死（但這就是「穩定」的代價）

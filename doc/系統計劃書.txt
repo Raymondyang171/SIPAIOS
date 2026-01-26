@@ -1,0 +1,315 @@
+[模式A：Q&A]
+
+* # ERP/MES/APS 視覺化製造營運平台｜V1.1 計畫書（可落地收斂版・可直接複製貼上）
+
+  * **版本目的**
+
+    * 以你已鎖定的答案（Backflush×Lot、BOM 版本、工單作廢退庫、舊 ERP 嫁接）為準，將 V1.0 全文更新為 **V1.1**，作為進入 **Phase 1 DB schema** 的唯一依據文件
+  * **目標客群**
+
+    * 150 人以下中小型工廠；年營業額約 4,000–10,000 萬 RMB
+  * **Phase 1 首波版本**
+
+    * **組裝（Assembly Pack）** ＋ **金屬加工／沖壓（Stamping Pack）**
+  * **Phase 1 的 APS 主訴求**
+
+    * **瓶頸透明化／產能利用可視化（不追求一次排到完美）**
+  * **文件分離策略**
+
+    * 本文件（V1.1）只描述「業務域/流程/資料語意/驗收閉環」
+    * 平台級維運基線（SIP AIOS V2.1）**暫不對齊、暫不合併**（後續可再調整）
+
+---
+
+* ## 1) 產品定位與核心價值（你要的：不是普通 ERP）
+
+  * **定位一句話**
+
+    * 「具備 **ERP 基本交易閉環** 的製造營運平台，差異化在：**事件驅動 + 視覺化下鑽（含周邊擴展）+ 有限排程 APS + 跨系統對帳證據鏈**。」
+  * **ISA-95 語意對齊（作為概念框架，不綁平台文件）**
+
+    * 系統主戰場是 **Level 3（製造營運/MES）↔ Level 4（ERP/商務物流）** 的協同；正式財務/稅務仍交由外部認證系統。 ([isa.org](https://www.isa.org/standards-and-publications/isa-standards/isa-95-standard?utm_source=chatgpt.com))
+  * **對外 Demo 台詞（售前可直接用）**
+
+    * 「不用先換你舊 ERP，我們先把你管不到的那塊補起來：瓶頸、缺料、品質卡點、交期守不守得住；每張圖都能一路點到單據與事件證據。」
+
+---
+
+* ## 2) 生產型態全景（系統長期涵蓋；Phase 1 先落地兩種）
+
+  * **A. 工站式＋站後入庫（沖壓/金工）**：多站報工、階段後可能入庫形成 WIP/半成品
+  * **B. 工站式但不做中間入庫（模切/貼紙）**：少量多樣、料號爆量（Phase 2+）
+  * **C. 連續式/組裝流水**：工序多、零件多、返工重工、彈性生產（Phase 1 落地）
+  * **D. 一站式（注塑）**：設備多、看板＋工藝參數重（Phase 2+）
+  * **Phase 1 取捨**
+
+    * 只做 **組裝（C）** 與 **沖壓（A）**；B、D 以未來 Pack 方式擴充
+
+---
+
+* ## 3) Phase 1 必須形成的「交易閉環」（E2E）
+
+  * **必含主流程**
+
+    * 客戶訂單/PO → 工程資料（料號/BOM/版本） → 工單 Released
+    * 採購 PO → GRN（到貨） → IQC（狀態） → 庫存可用性
+    * 生產執行（最小事件） → APS（有限排程輸出）
+    * 入庫（WIP/FG） → 出貨 → 客退/退料（可選）
+  * **必含主資料**
+
+    * 客戶、供應商、料號、BOM（版本）、倉庫/倉別（至少代碼）
+  * **外部財會/稅務邊界**
+
+    * 正式財報、稅務、發票、認證：外部系統處理
+    * 本系統：提供對帳用事實鏈與直接成本驗算資料（不出認證報表）
+
+---
+
+* ## 4) 核心設計原則（Phase 1 必須遵守）
+
+  * **P1 視覺化是主介面**
+
+    * 所有關鍵報表必須視覺化，且支援：
+
+      * **連點下鑽（drill-down）**：KPI → 單據 → 事件
+      * **周邊擴展（context expansion）**：下鑽同時拉出關聯清單（供應商→影響缺料工單/訂單）
+  * **P2 事件驅動（Event-driven）**
+
+    * 除設備監控可能秒級，其餘以事件推動狀態改變
+  * **P3 現場可落地優先：組裝預設 Backflush**
+
+    * Backflush 以完工/關鍵過帳後自動扣 BOM 用量，降低現場逐筆掃碼負擔。 ([finaleinventory.com](https://www.finaleinventory.com/inventory-management/what-is-backflushing-understanding-processes-definitions-and-benefits-ecommerce?utm_source=chatgpt.com))
+  * **P4 單位換算可配置**
+
+    * 標準轉換率（Item level）＋ 批次特定覆寫（Lot override，沖壓保留）
+  * **P5 Day-1 多工廠/多倉代碼**
+
+    * 所有交易資料具備 Company/Tenant + Site + Warehouse 維度
+
+---
+
+* ## 5) Phase 1 模組清單（Scope）
+
+  * **M1 客戶/訂單（Sales）**
+
+    * 客戶主檔、訂單/PO、交期窗口、版本/變更紀錄
+  * **M2 工程（Engineering）**
+
+    * 料號主檔（含 KeyMaterial 標記）、BOM（版本化、只增不刪）、備註、時間欄位
+  * **M3 供應商/採購（Procurement）**
+
+    * 供應商主檔、採購 PO、GRN、退貨/補料、供應商 KPI（交期達成率、品質不良率）
+    * AVL（供應商合格清單）可作為 soft-link：先記錄、先分析（Phase 1 不強制下單限制）。 ([ptc.com](https://www.ptc.com/en/blogs/plm/what-is-an-approved-vendor-list?utm_source=chatgpt.com))
+  * **M4 品質（Q-lite）**
+
+    * 只做狀態（待檢/放行/隔離/退貨）＋原因碼
+    * 完整檢驗紀錄/客製模板：Phase 2 獨立 Q 頁面
+  * **M5 庫存（Inventory/WMS-lite）**
+
+    * 多倉餘量、可用性狀態、Lot（沖壓必填；組裝僅 KeyMaterial 需要）
+    * 倉別流程：待檢/返工/不良等倉必須完成流程後，才能轉入普通倉（可用倉）
+  * **M6 生產執行（MES-lite）**
+
+    * 工單 Released、最小事件（開工/完工/報廢/補料/返工標記）、WIP/半成品入庫（沖壓）
+    * 組裝：支援完工入庫觸發 Backflush
+  * **M7 APS（有限排程）**
+
+    * 輸入：只吃 Released 工單（Phase 1）
+    * 輸出：機台×時段排程清單（瓶頸透明化）
+    * Cycle time（料號×機台）需版本概念（參數/製具/原料/人力變動可調整）
+    * 有限排程定義：考慮資源容量限制。 ([planettogether.com](https://www.planettogether.com/aps-trends/the-difference-between-finite-capacity-scheduling-and-infinite-capacity-loading?utm_source=chatgpt.com))
+  * **M8 視覺化與下鑽引擎（Control Tower Layer）**
+
+    * 供應鏈 PO 地圖（交期窗口/到貨/退貨/達成率/良率）
+    * 生產可行性視覺（庫存＋在途＋品質可用＋產能瓶頸）
+    * 任務時間軸（沿用外包報工+app 概念）
+    * 現場看板（Phase 1 可先做靜態/準即時數值；秒級監控與動畫列 Phase 2）
+
+---
+
+* ## 6) 關鍵規則集（V1.1 新增/鎖死條款）
+
+  * ### 6.1 組裝 Backflush × 批次追溯（縫隙 A：已鎖定）
+
+    * **Lot Tracking 分級**
+
+      * 只有 **KeyMaterial=true** 的料號需要追 Lot；其餘不追 Lot
+      * KeyMaterial 由工程/品保在料號主檔維護（Q1=A）
+    * **可扣來源倉（你客戶現況版）**
+
+      * Backflush 只會從「普通倉（可用倉）」扣料
+      * 待檢倉/返工倉/不良品倉等必須完成流程轉入普通倉，才會成為可扣來源
+    * **自動批次分配（FIFO）**
+
+      * 對 KeyMaterial：以 **GRN 入庫時間** FIFO 扣帳
+      * 若單一 Lot 不足：允許跨 Lot 拆分扣帳
+    * **事後調整與審計**
+
+      * 允許更正已分配的 Lot（重分配），必須留存審計軌跡（操作者、時間、原因、前後差異）
+    * **成品批次（FG Lot）**
+
+      * 組裝成品必須有「生產批次/批號」（Q2=A）
+      * 目的：把「關鍵料 Lot → 這批成品」串成可追溯鏈，支撐下鑽查核與對帳
+    * **指定批次生產**【不確定】
+
+      * Phase 1 預設不常見，先不提供強制指定流程；保留 Phase 2 擴充點
+
+  * ### 6.2 BOM 版本 × 工單證據鎖定（縫隙 B：已鎖定）
+
+    * **BOM 版本策略**
+
+      * BOM 只新增版本、不刪除舊版
+      * 每版必有：時間欄位＋備註（用來區分與注記）
+    * **工單建立的證據鎖定**
+
+      * 工單建立時必須綁定 **BOM_VersionID**
+      * 工單下鑽/缺料計算/Backflush 扣料，全以該 BOM_VersionID 為準（避免歷史漂移）
+    * **BOM 變更生效規則**
+
+      * 只影響新工單；已 Released 工單不回套新 BOM
+
+  * ### 6.3 工單作廢（Void）與退庫歸帳（你指定的閉環）
+
+    * **允許部分完工的作廢（Q3=A）**
+
+      * 已完工且已入庫的部分：保留（視為有效產出）
+      * 未完工部分：可作廢，並執行退庫歸帳
+    * **作廢時的必做動作**
+
+      * 若該工單已發生扣料（含 Backflush/手動領料）：
+
+        * 必須產生「退庫/沖銷」事件，把未消耗或需回滾的部分歸回庫存（含倉別/批次/數量/原因）
+      * 完成對帳後，才允許重開新工單再次執行
+    * **審計要求**
+
+      * 作廢原因、操作者、時間、影響的扣料與退庫事件必須可追溯
+
+  * ### 6.4 舊 ERP 嫁接（最小切入點＋對帳鍵）
+
+    * **最小切入點**
+
+      * 以「PO + GRN + 庫存」作為嫁接錨點（先產生管理價值）
+    * **外部單號欄位（必要）**
+
+      * 交易/事件需支援 External Reference：來源系統代號 + 外部單號（必要時含外部明細行序號）
+      * 用途：雙系統對帳、追查差異、避免人工對帳地獄
+
+---
+
+* ## 7) Pack 差異（Phase 1 兩種版本的明確邊界）
+
+  * **7.1 組裝 Pack（Assembly）**
+
+    * 物料消耗：預設 Backflush（完工/關鍵過帳觸發）
+    * 批次：僅 KeyMaterial 追 Lot；成品一定有 FG Lot
+    * 替代料：人工指定替代料 **不影響標準工時/cycle time**（Phase 1 假設）
+  * **7.2 沖壓 Pack（Stamping）**
+
+    * Lot 強制：鋼捲/批號追溯必備
+    * 單位換算：標準轉換率＋Lot override（可選填、可盤點補）
+    * WIP/半成品：站後入庫是管理必需
+    * 模具：APS 只看可用/不可用；壽命/保養/維修走 Phase 2 模具頁
+    * Scrap：量＋原因碼（材料浪費改善證據）
+
+---
+
+* ## 8) 成本與財務（Phase 1 只做“能驗算/能對帳”）
+
+  * **Phase 1 目標**
+
+    * 從事件鏈驗算：到貨、檢驗狀態、可用性、扣料、報廢、入庫、出貨
+    * 對外部財會系統提供：可對帳的事實鏈與直接成本驗算資料（不出認證財報）
+  * **Phase 2 佈局（已識別，先寫入以免遺漏）**
+
+    * 沖壓金屬兩種商業模式（加工費鎖價 vs 自備庫存吃波動）
+    * Lot costing（批號成本）與 WIP/FG 批次成本追溯
+
+---
+
+* ## 9) 視覺化管理（你要的核心特色，Phase 1 的可落地版本）
+
+  * **現場看板（Phase 1 最小可用）**
+
+    * 以設備/工作中心為單位顯示：工單/料號/客戶/OK/NG/良率/預計結束時間/下一筆排程
+    * 秒級監控與動畫（GIF/設備運轉）列 Phase 2（避免 Phase 1 爆炸）
+  * **庫存地圖（Phase 1 最小可用）**
+
+    * 先做 2D 區域→倉別→料號/批號（數量以高度/數字顯示）
+  * **供應鏈 PO 地圖（Phase 1）**
+
+    * 供應商交期達成率、到貨量、退貨量、品質不良率（以時間段呈現）
+    * 下鑽可拉出：影響缺料工單/訂單清單（周邊擴展）
+  * **生產可行性視覺（Phase 1）**
+
+    * 以產品/工單為核心：庫存可用＋在途＋品質狀態＋產能瓶頸（讓管理決策能落地）
+  * **任務時間軸（Phase 1）**
+
+    * 直接沿用你既有外包報工+app 的 dashboard/時間軸模型
+
+---
+
+* ## 10) Phase 1 驗收錨點（客觀可測，決定是否進 DB 與下一階段）
+
+  * **E2E 閉環**
+
+    * 可跑通：訂單/PO → BOM(版本) → Released 工單 → 採購 PO → GRN → IQC 狀態 → 庫存可用性 → APS 排程清單 → 入庫 → 出貨
+  * **APS（瓶頸透明化）**
+
+    * 輸出機台×時段排程清單，能標示瓶頸/超載區段（不要求最優）
+  * **視覺化下鑽＋周邊擴展**
+
+    * 供應商 KPI → 影響缺料工單/訂單 → 對應 GRN/IQC/庫存事件證據
+  * **組裝 Pack**
+
+    * Backflush 可扣料；KeyMaterial FIFO 扣到 Lot；成品 FG Lot 可回推到關鍵料 Lot
+    * 允許事後調整且有審計軌跡
+  * **沖壓 Pack**
+
+    * Lot 追溯、Lot 換算覆寫、WIP 入庫、模具可用性限制、Scrap 原因碼皆可查核
+
+---
+
+* ## 11) 風險與對策（Phase 1 先避坑）
+
+  * **R1 現場不願填報 → 資料不可信**
+
+    * 對策：組裝預設 Backflush；只要求例外事件（報廢/補料/退料）手動登錄
+  * **R2 沖壓固定換算 → 庫存永遠對不準**
+
+    * 對策：Lot override 允許覆寫，且可盤點補正
+  * **R3 BOM 變更造成歷史漂移**
+
+    * 對策：工單綁 BOM_VersionID；變更只影響新工單
+  * **R4 工單作廢不退庫 → 帳越滾越亂**
+
+    * 對策：作廢必做退庫歸帳；允許部分完工保留
+
+---
+
+* ## 12) Phase 2 觸發器（不做承諾，只定何時必須升級）
+
+  * 需要完整 Q 檢驗紀錄/客製模板 → 上 Q 模組
+  * 需要模具壽命/保養/維修/備件 → 上模具模組
+  * 老闆要插單/預測單試算 → 上 APS Simulation（Scenario UI）
+  * 沖壓要批號成本/金屬價格波動策略 → 上 Lot costing 與商業模式切換
+  * 需要秒級監控/設備參數/動畫看板 → 上設備監控模組
+
+---
+
+* ## 13) 最終判定（你問的核心）
+
+  * **Phase 1 是否能形成閉環？**
+
+    * ✅ 可以。因為你已鎖定：BOM 版本證據、Backflush 可落地且仍可追溯關鍵料、工單作廢退庫閉環、APS 以 Released 輸入達成瓶頸透明化、並保留跨系統對帳鍵。
+  * **是否可進入 Phase 1 DB schema？**
+
+    * ✅ 可以。V1.1 已把 schema 必須反映的“鎖死點”定義完成（KeyMaterial、FG Lot、FIFO 扣批、BOM_VersionID、Void 退庫、External Reference、多倉流程）。
+
+---
+
+如果你下一步要我把 V1.1 **直接推導成 Phase 1 DB schema 的「文字藍圖」**（Entity 清單、主鍵粒度、事件表 vs 餘量表關係、必要索引方向、Pack 差異欄位），我可以照你的規則：**不貼 SQL/不貼程式碼**，但輸出一份可直接丟給 VS Code agent 施工的規格清單。
+
+[1]: https://www.isa.org/standards-and-publications/isa-standards/isa-95-standard?utm_source=chatgpt.com "ISA-95 Standard: Enterprise-Control System Integration"
+[2]: https://www.finaleinventory.com/inventory-management/what-is-backflushing-understanding-processes-definitions-and-benefits-ecommerce?utm_source=chatgpt.com "What Is Backflushing? Understanding Processes, Definitions ..."
+[3]: https://www.ptc.com/en/blogs/plm/what-is-an-approved-vendor-list?utm_source=chatgpt.com "What Is an Approved Vendor List (AVL)?"
+[4]: https://www.planettogether.com/aps-trends/the-difference-between-finite-capacity-scheduling-and-infinite-capacity-loading?utm_source=chatgpt.com "Finite Capacity Scheduling & Infinite Capacity Loading ..."
