@@ -35,6 +35,16 @@
   - **內容**：Dev Agent 與 Runtime Agent 的權限邊界、Kill Switch、操作閾值 (含原 Agents 定義)。
 - **`DATA_RETENTION_POLICY.md`**
   - **內容**：資料保留天數、清理策略、磁碟水位控制。
+## 🛠️ Stage 2A: Database Operations
+- [Phase 1 One-Click Replay](./runbooks/STAGE2A_PHASE1_ONE_CLICK_REPLAY.md) 
+  - *用途：一鍵還原資料庫、灌入 Demo 資料並自動驗證*
+
+## 🏗️ Architecture & Design
+- [System Architecture](./ARCHITECTURE.md)
+  - *用途：定義 SIPAIOS 核心架構、資料流與模組化邏輯*
+
+
+
 
 ---
 
