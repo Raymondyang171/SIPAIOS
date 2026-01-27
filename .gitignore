@@ -42,3 +42,5 @@ artifacts/baselines/
 phase1_*_bundle.zip
 phase1_ops_*.zip
 phase1_step1_*.zip
+
+artifacts/
