@@ -62,8 +62,7 @@ on conflict ("id") do update set "company_id" = EXCLUDED."company_id", "site_id"
 
 -- table: sales_order_lines
 insert into public."sales_order_lines" ("id", "sales_order_id", "line_no", "item_id", "qty", "uom_id")
-values ('42532e22-2d2f-5340-b477-7cd4d46d653e'::uuid, '0559179b-4ec4-519a-a95a-1dfc98a70c79'::uuid, 1, 'addc1fe5-52ba-5fb9-9ee7-ef48ecd8fd39'::uuid, 1.000
-, 'd42de897-d9d5-580e-b1fb-2e700cd5a90d'::uuid)
+values ('42532e22-2d2f-5340-b477-7cd4d46d653e'::uuid, '0559179b-4ec4-519a-a95a-1dfc98a70c79'::uuid, 1, 'addc1fe5-52ba-5fb9-9ee7-ef48ecd8fd39'::uuid, 1.000, 'd42de897-d9d5-580e-b1fb-2e700cd5a90d'::uuid)
 on conflict ("id") do update set "sales_order_id" = EXCLUDED."sales_order_id", "line_no" = EXCLUDED."line_no", "item_id" = EXCLUDED."item_id", "qty" = EXCLUDED."qty", "uom_id" = EXCLUDED."uom_id";
 
 -- table: work_centers
