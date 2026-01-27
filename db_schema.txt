@@ -1,0 +1,2999 @@
+--
+-- PostgreSQL database dump
+--
+
+\restrict NbT3cZxOxUPcXJYVMk4drtXLzqvoWwdMN52npSMBaxTBCQgLslaPw4Cp0npl5xd
+
+-- Dumped from database version 16.11
+-- Dumped by pg_dump version 16.11
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- Name: public; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA public;
+
+
+--
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON SCHEMA public IS 'standard public schema';
+
+
+--
+-- Name: backflush_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.backflush_status AS ENUM (
+    'pending',
+    'posted',
+    'reversed'
+);
+
+
+--
+-- Name: bom_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.bom_status AS ENUM (
+    'draft',
+    'active',
+    'obsolete'
+);
+
+
+--
+-- Name: goods_receipt_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.goods_receipt_status AS ENUM (
+    'draft',
+    'received',
+    'iqc_pending',
+    'released',
+    'rejected',
+    'closed'
+);
+
+
+--
+-- Name: inventory_move_type; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.inventory_move_type AS ENUM (
+    'grn_receipt',
+    'issue',
+    'backflush_issue',
+    'return',
+    'transfer',
+    'adjust',
+    'shipment'
+);
+
+
+--
+-- Name: iqc_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.iqc_status AS ENUM (
+    'pending',
+    'accepted',
+    'rejected',
+    'quarantined'
+);
+
+
+--
+-- Name: item_type; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.item_type AS ENUM (
+    'material',
+    'wip',
+    'fg',
+    'service'
+);
+
+
+--
+-- Name: lot_tracking_mode; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.lot_tracking_mode AS ENUM (
+    'none',
+    'optional',
+    'required'
+);
+
+
+--
+-- Name: purchase_order_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.purchase_order_status AS ENUM (
+    'draft',
+    'sent',
+    'partial',
+    'closed',
+    'cancelled'
+);
+
+
+--
+-- Name: sales_order_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.sales_order_status AS ENUM (
+    'draft',
+    'confirmed',
+    'partial',
+    'shipped',
+    'closed',
+    'cancelled'
+);
+
+
+--
+-- Name: schedule_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.schedule_status AS ENUM (
+    'planned',
+    'firm',
+    'done',
+    'cancelled'
+);
+
+
+--
+-- Name: warehouse_category; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.warehouse_category AS ENUM (
+    'normal',
+    'inspection',
+    'rework',
+    'scrap',
+    'quarantine'
+);
+
+
+--
+-- Name: work_order_event_type; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.work_order_event_type AS ENUM (
+    'release',
+    'start',
+    'pause',
+    'resume',
+    'complete',
+    'void',
+    'fg_receipt',
+    'wip_receipt',
+    'scrap',
+    'rework',
+    'return_material',
+    'adjust'
+);
+
+
+--
+-- Name: work_order_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.work_order_status AS ENUM (
+    'draft',
+    'released',
+    'in_progress',
+    'completed',
+    'void'
+);
+
+
+--
+-- Name: has_permission(uuid, uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.has_permission(p_tenant_id uuid, p_user_id uuid, p_permission_key text) RETURNS boolean
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    SET row_security TO 'off'
+    AS $_$
+DECLARE
+  has_permission_id boolean;
+  has_permission_key boolean;
+  has_permissions_id_col boolean;
+  result boolean := false;
+  sql text;
+BEGIN
+  SELECT EXISTS(
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'sys_role_permissions'
+      AND column_name = 'permission_id'
+  ) INTO has_permission_id;
+
+  SELECT EXISTS(
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'sys_role_permissions'
+      AND column_name = 'permission_key'
+  ) INTO has_permission_key;
+
+  IF has_permission_id THEN
+    SELECT EXISTS(
+      SELECT 1
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'sys_permissions'
+        AND column_name = 'id'
+    ) INTO has_permissions_id_col;
+
+    IF has_permissions_id_col THEN
+      sql := '
+        SELECT EXISTS(
+          SELECT 1
+          FROM public.sys_memberships m
+          JOIN public.sys_role_permissions rp ON rp.role_id = m.role_id
+          JOIN public.sys_permissions p ON p.id = rp.permission_id
+          WHERE m.tenant_id = $1
+            AND m.user_id = $2
+            AND p.key = $3
+        )';
+      EXECUTE sql INTO result USING p_tenant_id, p_user_id, p_permission_key;
+    ELSE
+      result := false;
+    END IF;
+  ELSIF has_permission_key THEN
+    sql := '
+      SELECT EXISTS(
+        SELECT 1
+        FROM public.sys_memberships m
+        JOIN public.sys_role_permissions rp ON rp.role_id = m.role_id
+        WHERE m.tenant_id = $1
+          AND m.user_id = $2
+          AND rp.permission_key = $3
+      )';
+    EXECUTE sql INTO result USING p_tenant_id, p_user_id, p_permission_key;
+  ELSE
+    result := false;
+  END IF;
+
+  RETURN result;
+END;
+$_$;
+
+
+--
+-- Name: is_tenant_admin(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.is_tenant_admin(p_tenant_id uuid, p_user_id uuid) RETURNS boolean
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    SET row_security TO 'off'
+    AS $_$
+DECLARE
+  has_admin_col boolean;
+  result boolean := false;
+  sql text;
+BEGIN
+  SELECT EXISTS(
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'sys_memberships'
+      AND column_name = 'is_tenant_admin'
+  ) INTO has_admin_col;
+
+  IF has_admin_col THEN
+    sql := '
+      SELECT EXISTS(
+        SELECT 1 FROM public.sys_memberships m
+        WHERE m.tenant_id = $1
+          AND m.user_id = $2
+          AND m.is_tenant_admin = true
+      )';
+    EXECUTE sql INTO result USING p_tenant_id, p_user_id;
+  ELSE
+    result := false;
+  END IF;
+
+  RETURN result;
+END;
+$_$;
+
+
+--
+-- Name: is_tenant_member(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.is_tenant_member(p_tenant_id uuid, p_user_id uuid) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    SET row_security TO 'off'
+    AS $$
+  SELECT EXISTS(
+    SELECT 1 FROM public.sys_memberships m
+    WHERE m.tenant_id = p_tenant_id AND m.user_id = p_user_id
+  )
+$$;
+
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- Name: audit_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.audit_events (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    occurred_at timestamp with time zone DEFAULT now() NOT NULL,
+    actor_user_id uuid,
+    actor_name text,
+    entity_type text NOT NULL,
+    entity_id uuid,
+    action text NOT NULL,
+    reason text,
+    before_state jsonb,
+    after_state jsonb,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: backflush_allocations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.backflush_allocations (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    backflush_run_id uuid NOT NULL,
+    component_item_id uuid NOT NULL,
+    component_lot_id uuid,
+    qty numeric(18,6) NOT NULL,
+    uom_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT backflush_allocations_qty_check CHECK ((qty > (0)::numeric))
+);
+
+
+--
+-- Name: backflush_runs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.backflush_runs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    work_order_id uuid NOT NULL,
+    production_lot_id uuid NOT NULL,
+    status public.backflush_status DEFAULT 'pending'::public.backflush_status NOT NULL,
+    occurred_at timestamp with time zone DEFAULT now() NOT NULL,
+    note text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    posted_inventory_move_id uuid,
+    reversed_inventory_move_id uuid
+);
+
+
+--
+-- Name: bom_headers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.bom_headers (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    fg_item_id uuid NOT NULL,
+    code text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: bom_lines; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.bom_lines (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    bom_version_id uuid NOT NULL,
+    line_no integer NOT NULL,
+    component_item_id uuid NOT NULL,
+    qty_per numeric(18,6) NOT NULL,
+    uom_id uuid NOT NULL,
+    scrap_factor numeric(9,6) DEFAULT 0 NOT NULL,
+    note text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT bom_lines_qty_per_check CHECK ((qty_per > (0)::numeric)),
+    CONSTRAINT bom_lines_scrap_factor_check CHECK ((scrap_factor >= (0)::numeric))
+);
+
+
+--
+-- Name: bom_versions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.bom_versions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    bom_header_id uuid NOT NULL,
+    version_no integer NOT NULL,
+    status public.bom_status DEFAULT 'draft'::public.bom_status NOT NULL,
+    effective_from timestamp with time zone DEFAULT now() NOT NULL,
+    note text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: companies; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.companies (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    code text NOT NULL,
+    name text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: customers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.customers (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    code text NOT NULL,
+    name text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: goods_receipt_lines; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.goods_receipt_lines (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    goods_receipt_id uuid NOT NULL,
+    line_no integer NOT NULL,
+    purchase_order_line_id uuid,
+    item_id uuid NOT NULL,
+    qty_received numeric(18,6) NOT NULL,
+    uom_id uuid NOT NULL,
+    warehouse_id uuid NOT NULL,
+    lot_id uuid,
+    note text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT goods_receipt_lines_qty_received_check CHECK ((qty_received > (0)::numeric))
+);
+
+
+--
+-- Name: goods_receipts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.goods_receipts (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    site_id uuid NOT NULL,
+    supplier_id uuid NOT NULL,
+    purchase_order_id uuid,
+    grn_no text NOT NULL,
+    status public.goods_receipt_status DEFAULT 'received'::public.goods_receipt_status NOT NULL,
+    received_at timestamp with time zone DEFAULT now() NOT NULL,
+    source_system text,
+    external_ref_id text,
+    note text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    posted_inventory_move_id uuid
+);
+
+
+--
+-- Name: inventory_balances; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.inventory_balances (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    site_id uuid NOT NULL,
+    warehouse_id uuid NOT NULL,
+    item_id uuid NOT NULL,
+    lot_id uuid,
+    qty numeric(18,6) DEFAULT 0 NOT NULL,
+    uom_id uuid NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: inventory_lots; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.inventory_lots (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    item_id uuid NOT NULL,
+    lot_code text NOT NULL,
+    lot_type text DEFAULT 'supplier'::text NOT NULL,
+    supplier_lot_code text,
+    mfg_date date,
+    expiry_date date,
+    received_at timestamp with time zone,
+    note text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: inventory_move_lines; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.inventory_move_lines (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    move_id uuid NOT NULL,
+    item_id uuid NOT NULL,
+    lot_id uuid,
+    from_warehouse_id uuid,
+    to_warehouse_id uuid,
+    qty numeric(18,6) NOT NULL,
+    uom_id uuid NOT NULL,
+    reason_code_id uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT inventory_move_lines_qty_check CHECK ((qty <> (0)::numeric))
+);
+
+
+--
+-- Name: inventory_moves; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.inventory_moves (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    site_id uuid NOT NULL,
+    move_type public.inventory_move_type NOT NULL,
+    occurred_at timestamp with time zone DEFAULT now() NOT NULL,
+    source_system text,
+    external_ref_id text,
+    external_ref_line_id text,
+    doc_type text,
+    doc_id uuid,
+    note text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: iqc_records; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.iqc_records (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    goods_receipt_line_id uuid NOT NULL,
+    status public.iqc_status DEFAULT 'pending'::public.iqc_status NOT NULL,
+    inspected_at timestamp with time zone,
+    inspector text,
+    reason_code_id uuid,
+    note text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: item_cycle_time_versions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.item_cycle_time_versions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    item_id uuid NOT NULL,
+    work_center_id uuid NOT NULL,
+    version_no integer NOT NULL,
+    cycle_time_sec integer NOT NULL,
+    effective_from timestamp with time zone DEFAULT now() NOT NULL,
+    note text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT item_cycle_time_versions_cycle_time_sec_check CHECK ((cycle_time_sec > 0))
+);
+
+
+--
+-- Name: item_uom_conversions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.item_uom_conversions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    item_id uuid NOT NULL,
+    from_uom_id uuid NOT NULL,
+    to_uom_id uuid NOT NULL,
+    ratio numeric(18,8) NOT NULL,
+    note text,
+    effective_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT item_uom_conversions_ratio_check CHECK ((ratio > (0)::numeric))
+);
+
+
+--
+-- Name: items; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.items (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    item_no text NOT NULL,
+    name text NOT NULL,
+    item_type public.item_type NOT NULL,
+    base_uom_id uuid NOT NULL,
+    key_material boolean DEFAULT false NOT NULL,
+    lot_tracking public.lot_tracking_mode DEFAULT 'none'::public.lot_tracking_mode NOT NULL,
+    spec text,
+    is_active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT ck_key_material_lot_mode CHECK (((key_material = false) OR (lot_tracking = ANY (ARRAY['optional'::public.lot_tracking_mode, 'required'::public.lot_tracking_mode]))))
+);
+
+
+--
+-- Name: lot_uom_conversions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.lot_uom_conversions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    lot_id uuid NOT NULL,
+    from_uom_id uuid NOT NULL,
+    to_uom_id uuid NOT NULL,
+    ratio numeric(18,8) NOT NULL,
+    note text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT lot_uom_conversions_ratio_check CHECK ((ratio > (0)::numeric))
+);
+
+
+--
+-- Name: production_lots; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.production_lots (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    work_order_id uuid NOT NULL,
+    fg_lot_id uuid NOT NULL,
+    produced_at timestamp with time zone DEFAULT now() NOT NULL,
+    qty numeric(18,6) NOT NULL,
+    uom_id uuid NOT NULL,
+    note text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    fg_receipt_move_id uuid,
+    CONSTRAINT production_lots_qty_check CHECK ((qty > (0)::numeric))
+);
+
+
+--
+-- Name: production_schedules; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.production_schedules (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    site_id uuid NOT NULL,
+    work_center_id uuid NOT NULL,
+    work_order_id uuid NOT NULL,
+    start_at timestamp with time zone NOT NULL,
+    end_at timestamp with time zone NOT NULL,
+    seq integer NOT NULL,
+    status public.schedule_status DEFAULT 'planned'::public.schedule_status NOT NULL,
+    cycle_time_version_id uuid,
+    note text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: purchase_order_lines; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.purchase_order_lines (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    purchase_order_id uuid NOT NULL,
+    line_no integer NOT NULL,
+    item_id uuid NOT NULL,
+    qty numeric(18,6) NOT NULL,
+    uom_id uuid NOT NULL,
+    unit_price numeric(18,6),
+    currency text,
+    promised_date date,
+    note text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT purchase_order_lines_qty_check CHECK ((qty > (0)::numeric))
+);
+
+
+--
+-- Name: purchase_orders; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.purchase_orders (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    site_id uuid NOT NULL,
+    supplier_id uuid NOT NULL,
+    po_no text NOT NULL,
+    status public.purchase_order_status DEFAULT 'draft'::public.purchase_order_status NOT NULL,
+    order_date date DEFAULT CURRENT_DATE NOT NULL,
+    promised_date date,
+    source_system text,
+    external_ref_id text,
+    note text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: reason_codes; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.reason_codes (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    code text NOT NULL,
+    name text NOT NULL,
+    category text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: sales_order_lines; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sales_order_lines (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    sales_order_id uuid NOT NULL,
+    line_no integer NOT NULL,
+    item_id uuid NOT NULL,
+    qty numeric(18,6) NOT NULL,
+    uom_id uuid NOT NULL,
+    promised_date date,
+    note text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT sales_order_lines_qty_check CHECK ((qty > (0)::numeric))
+);
+
+
+--
+-- Name: sales_orders; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sales_orders (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    site_id uuid NOT NULL,
+    customer_id uuid NOT NULL,
+    so_no text NOT NULL,
+    status public.sales_order_status DEFAULT 'draft'::public.sales_order_status NOT NULL,
+    order_date date DEFAULT CURRENT_DATE NOT NULL,
+    promised_date date,
+    source_system text,
+    external_ref_id text,
+    note text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: shipment_lines; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.shipment_lines (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    shipment_id uuid NOT NULL,
+    line_no integer NOT NULL,
+    sales_order_line_id uuid,
+    item_id uuid NOT NULL,
+    lot_id uuid,
+    qty numeric(18,6) NOT NULL,
+    uom_id uuid NOT NULL,
+    from_warehouse_id uuid NOT NULL,
+    note text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT shipment_lines_qty_check CHECK ((qty > (0)::numeric))
+);
+
+
+--
+-- Name: shipments; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.shipments (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    site_id uuid NOT NULL,
+    customer_id uuid NOT NULL,
+    sales_order_id uuid,
+    ship_no text NOT NULL,
+    shipped_at timestamp with time zone,
+    source_system text,
+    external_ref_id text,
+    note text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: sites; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sites (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    code text NOT NULL,
+    name text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: suppliers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.suppliers (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    code text NOT NULL,
+    name text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: sys_idempotency_keys; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sys_idempotency_keys (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    scope text DEFAULT 'global'::text NOT NULL,
+    company_id uuid,
+    idempotency_key text NOT NULL,
+    request_fingerprint text,
+    request_body jsonb,
+    response_status integer,
+    response_body jsonb,
+    status text DEFAULT 'created'::text NOT NULL,
+    first_seen_at timestamp with time zone DEFAULT now() NOT NULL,
+    last_seen_at timestamp with time zone DEFAULT now() NOT NULL,
+    expires_at timestamp with time zone,
+    locked_at timestamp with time zone,
+    locked_by text
+);
+
+
+--
+-- Name: sys_memberships; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sys_memberships (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    tenant_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    role_id uuid NOT NULL,
+    status text DEFAULT 'active'::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: sys_permissions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sys_permissions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    key text NOT NULL,
+    description text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: sys_role_permissions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sys_role_permissions (
+    role_id uuid NOT NULL,
+    permission_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: sys_roles; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sys_roles (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    tenant_id uuid NOT NULL,
+    key text NOT NULL,
+    name text NOT NULL,
+    is_system boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: sys_schema_version; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sys_schema_version (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    schema_name text NOT NULL,
+    version text NOT NULL,
+    checksum text,
+    applied_at timestamp with time zone DEFAULT now() NOT NULL,
+    applied_by text,
+    notes text
+);
+
+
+--
+-- Name: sys_tenants; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sys_tenants (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    code text NOT NULL,
+    name text NOT NULL,
+    status text DEFAULT 'active'::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: sys_users; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sys_users (
+    id uuid NOT NULL,
+    email text,
+    display_name text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: uoms; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.uoms (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    code text NOT NULL,
+    name text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: warehouses; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.warehouses (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    site_id uuid NOT NULL,
+    code text NOT NULL,
+    name text NOT NULL,
+    category public.warehouse_category DEFAULT 'normal'::public.warehouse_category NOT NULL,
+    is_active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: work_centers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.work_centers (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    site_id uuid NOT NULL,
+    code text NOT NULL,
+    name text NOT NULL,
+    is_active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: work_order_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.work_order_events (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    work_order_id uuid NOT NULL,
+    event_type public.work_order_event_type NOT NULL,
+    occurred_at timestamp with time zone DEFAULT now() NOT NULL,
+    payload jsonb,
+    note text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: work_orders; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.work_orders (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    site_id uuid NOT NULL,
+    wo_no text NOT NULL,
+    item_id uuid NOT NULL,
+    planned_qty numeric(18,6) NOT NULL,
+    uom_id uuid NOT NULL,
+    bom_version_id uuid NOT NULL,
+    status public.work_order_status DEFAULT 'draft'::public.work_order_status NOT NULL,
+    primary_warehouse_id uuid NOT NULL,
+    scheduled_start timestamp with time zone,
+    scheduled_end timestamp with time zone,
+    released_at timestamp with time zone,
+    completed_at timestamp with time zone,
+    source_system text,
+    external_ref_id text,
+    note text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT work_orders_planned_qty_check CHECK ((planned_qty > (0)::numeric))
+);
+
+
+--
+-- Name: audit_events audit_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audit_events
+    ADD CONSTRAINT audit_events_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: backflush_allocations backflush_allocations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.backflush_allocations
+    ADD CONSTRAINT backflush_allocations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: backflush_runs backflush_runs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.backflush_runs
+    ADD CONSTRAINT backflush_runs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: backflush_runs backflush_runs_production_lot_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.backflush_runs
+    ADD CONSTRAINT backflush_runs_production_lot_id_key UNIQUE (production_lot_id);
+
+
+--
+-- Name: bom_headers bom_headers_company_id_fg_item_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.bom_headers
+    ADD CONSTRAINT bom_headers_company_id_fg_item_id_key UNIQUE (company_id, fg_item_id);
+
+
+--
+-- Name: bom_headers bom_headers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.bom_headers
+    ADD CONSTRAINT bom_headers_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: bom_lines bom_lines_bom_version_id_line_no_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.bom_lines
+    ADD CONSTRAINT bom_lines_bom_version_id_line_no_key UNIQUE (bom_version_id, line_no);
+
+
+--
+-- Name: bom_lines bom_lines_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.bom_lines
+    ADD CONSTRAINT bom_lines_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: bom_versions bom_versions_bom_header_id_version_no_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.bom_versions
+    ADD CONSTRAINT bom_versions_bom_header_id_version_no_key UNIQUE (bom_header_id, version_no);
+
+
+--
+-- Name: bom_versions bom_versions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.bom_versions
+    ADD CONSTRAINT bom_versions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: companies companies_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.companies
+    ADD CONSTRAINT companies_code_key UNIQUE (code);
+
+
+--
+-- Name: companies companies_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.companies
+    ADD CONSTRAINT companies_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: customers customers_company_id_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customers
+    ADD CONSTRAINT customers_company_id_code_key UNIQUE (company_id, code);
+
+
+--
+-- Name: customers customers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customers
+    ADD CONSTRAINT customers_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: goods_receipt_lines goods_receipt_lines_goods_receipt_id_line_no_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.goods_receipt_lines
+    ADD CONSTRAINT goods_receipt_lines_goods_receipt_id_line_no_key UNIQUE (goods_receipt_id, line_no);
+
+
+--
+-- Name: goods_receipt_lines goods_receipt_lines_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.goods_receipt_lines
+    ADD CONSTRAINT goods_receipt_lines_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: goods_receipts goods_receipts_company_id_grn_no_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.goods_receipts
+    ADD CONSTRAINT goods_receipts_company_id_grn_no_key UNIQUE (company_id, grn_no);
+
+
+--
+-- Name: goods_receipts goods_receipts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.goods_receipts
+    ADD CONSTRAINT goods_receipts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: inventory_balances inventory_balances_company_id_site_id_warehouse_id_item_id__key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_balances
+    ADD CONSTRAINT inventory_balances_company_id_site_id_warehouse_id_item_id__key UNIQUE (company_id, site_id, warehouse_id, item_id, lot_id);
+
+
+--
+-- Name: inventory_balances inventory_balances_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_balances
+    ADD CONSTRAINT inventory_balances_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: inventory_lots inventory_lots_company_id_item_id_lot_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_lots
+    ADD CONSTRAINT inventory_lots_company_id_item_id_lot_code_key UNIQUE (company_id, item_id, lot_code);
+
+
+--
+-- Name: inventory_lots inventory_lots_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_lots
+    ADD CONSTRAINT inventory_lots_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: inventory_move_lines inventory_move_lines_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_move_lines
+    ADD CONSTRAINT inventory_move_lines_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: inventory_moves inventory_moves_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_moves
+    ADD CONSTRAINT inventory_moves_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: iqc_records iqc_records_goods_receipt_line_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.iqc_records
+    ADD CONSTRAINT iqc_records_goods_receipt_line_id_key UNIQUE (goods_receipt_line_id);
+
+
+--
+-- Name: iqc_records iqc_records_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.iqc_records
+    ADD CONSTRAINT iqc_records_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: item_cycle_time_versions item_cycle_time_versions_company_id_item_id_work_center_id__key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.item_cycle_time_versions
+    ADD CONSTRAINT item_cycle_time_versions_company_id_item_id_work_center_id__key UNIQUE (company_id, item_id, work_center_id, version_no);
+
+
+--
+-- Name: item_cycle_time_versions item_cycle_time_versions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.item_cycle_time_versions
+    ADD CONSTRAINT item_cycle_time_versions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: item_uom_conversions item_uom_conversions_item_id_from_uom_id_to_uom_id_effectiv_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.item_uom_conversions
+    ADD CONSTRAINT item_uom_conversions_item_id_from_uom_id_to_uom_id_effectiv_key UNIQUE (item_id, from_uom_id, to_uom_id, effective_at);
+
+
+--
+-- Name: item_uom_conversions item_uom_conversions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.item_uom_conversions
+    ADD CONSTRAINT item_uom_conversions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: items items_company_id_item_no_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.items
+    ADD CONSTRAINT items_company_id_item_no_key UNIQUE (company_id, item_no);
+
+
+--
+-- Name: items items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.items
+    ADD CONSTRAINT items_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: lot_uom_conversions lot_uom_conversions_lot_id_from_uom_id_to_uom_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lot_uom_conversions
+    ADD CONSTRAINT lot_uom_conversions_lot_id_from_uom_id_to_uom_id_key UNIQUE (lot_id, from_uom_id, to_uom_id);
+
+
+--
+-- Name: lot_uom_conversions lot_uom_conversions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lot_uom_conversions
+    ADD CONSTRAINT lot_uom_conversions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: production_lots production_lots_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.production_lots
+    ADD CONSTRAINT production_lots_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: production_lots production_lots_work_order_id_fg_lot_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.production_lots
+    ADD CONSTRAINT production_lots_work_order_id_fg_lot_id_key UNIQUE (work_order_id, fg_lot_id);
+
+
+--
+-- Name: production_schedules production_schedules_company_id_work_center_id_work_order_i_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.production_schedules
+    ADD CONSTRAINT production_schedules_company_id_work_center_id_work_order_i_key UNIQUE (company_id, work_center_id, work_order_id, seq);
+
+
+--
+-- Name: production_schedules production_schedules_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.production_schedules
+    ADD CONSTRAINT production_schedules_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: purchase_order_lines purchase_order_lines_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.purchase_order_lines
+    ADD CONSTRAINT purchase_order_lines_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: purchase_order_lines purchase_order_lines_purchase_order_id_line_no_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.purchase_order_lines
+    ADD CONSTRAINT purchase_order_lines_purchase_order_id_line_no_key UNIQUE (purchase_order_id, line_no);
+
+
+--
+-- Name: purchase_orders purchase_orders_company_id_po_no_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.purchase_orders
+    ADD CONSTRAINT purchase_orders_company_id_po_no_key UNIQUE (company_id, po_no);
+
+
+--
+-- Name: purchase_orders purchase_orders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.purchase_orders
+    ADD CONSTRAINT purchase_orders_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: reason_codes reason_codes_company_id_category_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reason_codes
+    ADD CONSTRAINT reason_codes_company_id_category_code_key UNIQUE (company_id, category, code);
+
+
+--
+-- Name: reason_codes reason_codes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reason_codes
+    ADD CONSTRAINT reason_codes_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sales_order_lines sales_order_lines_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_order_lines
+    ADD CONSTRAINT sales_order_lines_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sales_order_lines sales_order_lines_sales_order_id_line_no_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_order_lines
+    ADD CONSTRAINT sales_order_lines_sales_order_id_line_no_key UNIQUE (sales_order_id, line_no);
+
+
+--
+-- Name: sales_orders sales_orders_company_id_so_no_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_orders
+    ADD CONSTRAINT sales_orders_company_id_so_no_key UNIQUE (company_id, so_no);
+
+
+--
+-- Name: sales_orders sales_orders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_orders
+    ADD CONSTRAINT sales_orders_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: shipment_lines shipment_lines_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shipment_lines
+    ADD CONSTRAINT shipment_lines_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: shipment_lines shipment_lines_shipment_id_line_no_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shipment_lines
+    ADD CONSTRAINT shipment_lines_shipment_id_line_no_key UNIQUE (shipment_id, line_no);
+
+
+--
+-- Name: shipments shipments_company_id_ship_no_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shipments
+    ADD CONSTRAINT shipments_company_id_ship_no_key UNIQUE (company_id, ship_no);
+
+
+--
+-- Name: shipments shipments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shipments
+    ADD CONSTRAINT shipments_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sites sites_company_id_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sites
+    ADD CONSTRAINT sites_company_id_code_key UNIQUE (company_id, code);
+
+
+--
+-- Name: sites sites_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sites
+    ADD CONSTRAINT sites_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: suppliers suppliers_company_id_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.suppliers
+    ADD CONSTRAINT suppliers_company_id_code_key UNIQUE (company_id, code);
+
+
+--
+-- Name: suppliers suppliers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.suppliers
+    ADD CONSTRAINT suppliers_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sys_idempotency_keys sys_idempotency_keys_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sys_idempotency_keys
+    ADD CONSTRAINT sys_idempotency_keys_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sys_memberships sys_memberships_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sys_memberships
+    ADD CONSTRAINT sys_memberships_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sys_memberships sys_memberships_tenant_id_user_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sys_memberships
+    ADD CONSTRAINT sys_memberships_tenant_id_user_id_key UNIQUE (tenant_id, user_id);
+
+
+--
+-- Name: sys_permissions sys_permissions_key_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sys_permissions
+    ADD CONSTRAINT sys_permissions_key_key UNIQUE (key);
+
+
+--
+-- Name: sys_permissions sys_permissions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sys_permissions
+    ADD CONSTRAINT sys_permissions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sys_role_permissions sys_role_permissions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sys_role_permissions
+    ADD CONSTRAINT sys_role_permissions_pkey PRIMARY KEY (role_id, permission_id);
+
+
+--
+-- Name: sys_roles sys_roles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sys_roles
+    ADD CONSTRAINT sys_roles_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sys_roles sys_roles_tenant_id_key_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sys_roles
+    ADD CONSTRAINT sys_roles_tenant_id_key_key UNIQUE (tenant_id, key);
+
+
+--
+-- Name: sys_schema_version sys_schema_version_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sys_schema_version
+    ADD CONSTRAINT sys_schema_version_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sys_tenants sys_tenants_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sys_tenants
+    ADD CONSTRAINT sys_tenants_code_key UNIQUE (code);
+
+
+--
+-- Name: sys_tenants sys_tenants_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sys_tenants
+    ADD CONSTRAINT sys_tenants_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sys_users sys_users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sys_users
+    ADD CONSTRAINT sys_users_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: uoms uoms_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.uoms
+    ADD CONSTRAINT uoms_code_key UNIQUE (code);
+
+
+--
+-- Name: uoms uoms_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.uoms
+    ADD CONSTRAINT uoms_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: warehouses warehouses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.warehouses
+    ADD CONSTRAINT warehouses_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: warehouses warehouses_site_id_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.warehouses
+    ADD CONSTRAINT warehouses_site_id_code_key UNIQUE (site_id, code);
+
+
+--
+-- Name: work_centers work_centers_company_id_site_id_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.work_centers
+    ADD CONSTRAINT work_centers_company_id_site_id_code_key UNIQUE (company_id, site_id, code);
+
+
+--
+-- Name: work_centers work_centers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.work_centers
+    ADD CONSTRAINT work_centers_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: work_order_events work_order_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.work_order_events
+    ADD CONSTRAINT work_order_events_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: work_orders work_orders_company_id_wo_no_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.work_orders
+    ADD CONSTRAINT work_orders_company_id_wo_no_key UNIQUE (company_id, wo_no);
+
+
+--
+-- Name: work_orders work_orders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.work_orders
+    ADD CONSTRAINT work_orders_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: idx_audit_company_time; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audit_company_time ON public.audit_events USING btree (company_id, occurred_at DESC);
+
+
+--
+-- Name: idx_audit_entity; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audit_entity ON public.audit_events USING btree (entity_type, entity_id);
+
+
+--
+-- Name: idx_backflush_alloc_run; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_backflush_alloc_run ON public.backflush_allocations USING btree (backflush_run_id);
+
+
+--
+-- Name: idx_bom_lines_component; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_bom_lines_component ON public.bom_lines USING btree (component_item_id);
+
+
+--
+-- Name: idx_bom_lines_version; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_bom_lines_version ON public.bom_lines USING btree (bom_version_id);
+
+
+--
+-- Name: idx_bom_versions_header; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_bom_versions_header ON public.bom_versions USING btree (bom_header_id);
+
+
+--
+-- Name: idx_customers_company; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_customers_company ON public.customers USING btree (company_id);
+
+
+--
+-- Name: idx_cycle_time_item_wc; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_cycle_time_item_wc ON public.item_cycle_time_versions USING btree (item_id, work_center_id);
+
+
+--
+-- Name: idx_grn_lines_grn; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_grn_lines_grn ON public.goods_receipt_lines USING btree (goods_receipt_id);
+
+
+--
+-- Name: idx_grn_lines_item; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_grn_lines_item ON public.goods_receipt_lines USING btree (item_id);
+
+
+--
+-- Name: idx_grn_supplier; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_grn_supplier ON public.goods_receipts USING btree (supplier_id);
+
+
+--
+-- Name: idx_inv_balances_lookup; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_inv_balances_lookup ON public.inventory_balances USING btree (company_id, site_id, warehouse_id, item_id);
+
+
+--
+-- Name: idx_inv_move_lines_item; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_inv_move_lines_item ON public.inventory_move_lines USING btree (item_id);
+
+
+--
+-- Name: idx_inv_move_lines_lot; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_inv_move_lines_lot ON public.inventory_move_lines USING btree (lot_id);
+
+
+--
+-- Name: idx_inv_move_lines_move; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_inv_move_lines_move ON public.inventory_move_lines USING btree (move_id);
+
+
+--
+-- Name: idx_inv_moves_company_time; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_inv_moves_company_time ON public.inventory_moves USING btree (company_id, occurred_at DESC);
+
+
+--
+-- Name: idx_inv_moves_external; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_inv_moves_external ON public.inventory_moves USING btree (source_system, external_ref_id);
+
+
+--
+-- Name: idx_inventory_lots_item; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_inventory_lots_item ON public.inventory_lots USING btree (item_id);
+
+
+--
+-- Name: idx_iqc_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_iqc_status ON public.iqc_records USING btree (status);
+
+
+--
+-- Name: idx_item_uom_conv_item; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_item_uom_conv_item ON public.item_uom_conversions USING btree (item_id);
+
+
+--
+-- Name: idx_items_company; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_items_company ON public.items USING btree (company_id);
+
+
+--
+-- Name: idx_items_type; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_items_type ON public.items USING btree (item_type);
+
+
+--
+-- Name: idx_po_lines_po; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_po_lines_po ON public.purchase_order_lines USING btree (purchase_order_id);
+
+
+--
+-- Name: idx_po_supplier; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_po_supplier ON public.purchase_orders USING btree (supplier_id);
+
+
+--
+-- Name: idx_prod_lots_wo; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_prod_lots_wo ON public.production_lots USING btree (work_order_id);
+
+
+--
+-- Name: idx_reason_codes_company; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_reason_codes_company ON public.reason_codes USING btree (company_id);
+
+
+--
+-- Name: idx_sched_wc_time; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_sched_wc_time ON public.production_schedules USING btree (work_center_id, start_at);
+
+
+--
+-- Name: idx_sched_wo; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_sched_wo ON public.production_schedules USING btree (work_order_id);
+
+
+--
+-- Name: idx_ship_lines_ship; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_ship_lines_ship ON public.shipment_lines USING btree (shipment_id);
+
+
+--
+-- Name: idx_so_customer; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_so_customer ON public.sales_orders USING btree (customer_id);
+
+
+--
+-- Name: idx_so_lines_so; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_so_lines_so ON public.sales_order_lines USING btree (sales_order_id);
+
+
+--
+-- Name: idx_suppliers_company; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_suppliers_company ON public.suppliers USING btree (company_id);
+
+
+--
+-- Name: idx_sys_memberships_user; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_sys_memberships_user ON public.sys_memberships USING btree (user_id);
+
+
+--
+-- Name: idx_sys_roles_tenant; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_sys_roles_tenant ON public.sys_roles USING btree (tenant_id);
+
+
+--
+-- Name: idx_warehouses_site; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_warehouses_site ON public.warehouses USING btree (site_id);
+
+
+--
+-- Name: idx_wo_events_wo; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_wo_events_wo ON public.work_order_events USING btree (work_order_id, occurred_at);
+
+
+--
+-- Name: idx_wo_item; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_wo_item ON public.work_orders USING btree (item_id);
+
+
+--
+-- Name: idx_wo_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_wo_status ON public.work_orders USING btree (status);
+
+
+--
+-- Name: idx_work_centers_site; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_work_centers_site ON public.work_centers USING btree (site_id);
+
+
+--
+-- Name: sys_idempotency_keys_company_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX sys_idempotency_keys_company_id_idx ON public.sys_idempotency_keys USING btree (company_id);
+
+
+--
+-- Name: sys_idempotency_keys_expires_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX sys_idempotency_keys_expires_at_idx ON public.sys_idempotency_keys USING btree (expires_at);
+
+
+--
+-- Name: sys_idempotency_keys_last_seen_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX sys_idempotency_keys_last_seen_at_idx ON public.sys_idempotency_keys USING btree (last_seen_at);
+
+
+--
+-- Name: sys_idempotency_keys_scope_key_uq; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX sys_idempotency_keys_scope_key_uq ON public.sys_idempotency_keys USING btree (scope, idempotency_key);
+
+
+--
+-- Name: sys_schema_version_schema_name_uq; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX sys_schema_version_schema_name_uq ON public.sys_schema_version USING btree (schema_name);
+
+
+--
+-- Name: audit_events audit_events_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audit_events
+    ADD CONSTRAINT audit_events_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+
+--
+-- Name: backflush_allocations backflush_allocations_backflush_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.backflush_allocations
+    ADD CONSTRAINT backflush_allocations_backflush_run_id_fkey FOREIGN KEY (backflush_run_id) REFERENCES public.backflush_runs(id) ON DELETE CASCADE;
+
+
+--
+-- Name: backflush_allocations backflush_allocations_component_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.backflush_allocations
+    ADD CONSTRAINT backflush_allocations_component_item_id_fkey FOREIGN KEY (component_item_id) REFERENCES public.items(id);
+
+
+--
+-- Name: backflush_allocations backflush_allocations_component_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.backflush_allocations
+    ADD CONSTRAINT backflush_allocations_component_lot_id_fkey FOREIGN KEY (component_lot_id) REFERENCES public.inventory_lots(id);
+
+
+--
+-- Name: backflush_allocations backflush_allocations_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.backflush_allocations
+    ADD CONSTRAINT backflush_allocations_uom_id_fkey FOREIGN KEY (uom_id) REFERENCES public.uoms(id);
+
+
+--
+-- Name: backflush_runs backflush_runs_production_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.backflush_runs
+    ADD CONSTRAINT backflush_runs_production_lot_id_fkey FOREIGN KEY (production_lot_id) REFERENCES public.production_lots(id) ON DELETE CASCADE;
+
+
+--
+-- Name: backflush_runs backflush_runs_work_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.backflush_runs
+    ADD CONSTRAINT backflush_runs_work_order_id_fkey FOREIGN KEY (work_order_id) REFERENCES public.work_orders(id) ON DELETE CASCADE;
+
+
+--
+-- Name: bom_headers bom_headers_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.bom_headers
+    ADD CONSTRAINT bom_headers_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+
+--
+-- Name: bom_headers bom_headers_fg_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.bom_headers
+    ADD CONSTRAINT bom_headers_fg_item_id_fkey FOREIGN KEY (fg_item_id) REFERENCES public.items(id);
+
+
+--
+-- Name: bom_lines bom_lines_bom_version_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.bom_lines
+    ADD CONSTRAINT bom_lines_bom_version_id_fkey FOREIGN KEY (bom_version_id) REFERENCES public.bom_versions(id) ON DELETE CASCADE;
+
+
+--
+-- Name: bom_lines bom_lines_component_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.bom_lines
+    ADD CONSTRAINT bom_lines_component_item_id_fkey FOREIGN KEY (component_item_id) REFERENCES public.items(id);
+
+
+--
+-- Name: bom_lines bom_lines_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.bom_lines
+    ADD CONSTRAINT bom_lines_uom_id_fkey FOREIGN KEY (uom_id) REFERENCES public.uoms(id);
+
+
+--
+-- Name: bom_versions bom_versions_bom_header_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.bom_versions
+    ADD CONSTRAINT bom_versions_bom_header_id_fkey FOREIGN KEY (bom_header_id) REFERENCES public.bom_headers(id) ON DELETE CASCADE;
+
+
+--
+-- Name: customers customers_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customers
+    ADD CONSTRAINT customers_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+
+--
+-- Name: goods_receipt_lines goods_receipt_lines_goods_receipt_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.goods_receipt_lines
+    ADD CONSTRAINT goods_receipt_lines_goods_receipt_id_fkey FOREIGN KEY (goods_receipt_id) REFERENCES public.goods_receipts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: goods_receipt_lines goods_receipt_lines_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.goods_receipt_lines
+    ADD CONSTRAINT goods_receipt_lines_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.items(id);
+
+
+--
+-- Name: goods_receipt_lines goods_receipt_lines_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.goods_receipt_lines
+    ADD CONSTRAINT goods_receipt_lines_lot_id_fkey FOREIGN KEY (lot_id) REFERENCES public.inventory_lots(id);
+
+
+--
+-- Name: goods_receipt_lines goods_receipt_lines_purchase_order_line_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.goods_receipt_lines
+    ADD CONSTRAINT goods_receipt_lines_purchase_order_line_id_fkey FOREIGN KEY (purchase_order_line_id) REFERENCES public.purchase_order_lines(id);
+
+
+--
+-- Name: goods_receipt_lines goods_receipt_lines_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.goods_receipt_lines
+    ADD CONSTRAINT goods_receipt_lines_uom_id_fkey FOREIGN KEY (uom_id) REFERENCES public.uoms(id);
+
+
+--
+-- Name: goods_receipt_lines goods_receipt_lines_warehouse_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.goods_receipt_lines
+    ADD CONSTRAINT goods_receipt_lines_warehouse_id_fkey FOREIGN KEY (warehouse_id) REFERENCES public.warehouses(id);
+
+
+--
+-- Name: goods_receipts goods_receipts_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.goods_receipts
+    ADD CONSTRAINT goods_receipts_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+
+--
+-- Name: goods_receipts goods_receipts_purchase_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.goods_receipts
+    ADD CONSTRAINT goods_receipts_purchase_order_id_fkey FOREIGN KEY (purchase_order_id) REFERENCES public.purchase_orders(id);
+
+
+--
+-- Name: goods_receipts goods_receipts_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.goods_receipts
+    ADD CONSTRAINT goods_receipts_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
+
+
+--
+-- Name: goods_receipts goods_receipts_supplier_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.goods_receipts
+    ADD CONSTRAINT goods_receipts_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES public.suppliers(id);
+
+
+--
+-- Name: inventory_balances inventory_balances_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_balances
+    ADD CONSTRAINT inventory_balances_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+
+--
+-- Name: inventory_balances inventory_balances_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_balances
+    ADD CONSTRAINT inventory_balances_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.items(id);
+
+
+--
+-- Name: inventory_balances inventory_balances_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_balances
+    ADD CONSTRAINT inventory_balances_lot_id_fkey FOREIGN KEY (lot_id) REFERENCES public.inventory_lots(id);
+
+
+--
+-- Name: inventory_balances inventory_balances_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_balances
+    ADD CONSTRAINT inventory_balances_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
+
+
+--
+-- Name: inventory_balances inventory_balances_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_balances
+    ADD CONSTRAINT inventory_balances_uom_id_fkey FOREIGN KEY (uom_id) REFERENCES public.uoms(id);
+
+
+--
+-- Name: inventory_balances inventory_balances_warehouse_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_balances
+    ADD CONSTRAINT inventory_balances_warehouse_id_fkey FOREIGN KEY (warehouse_id) REFERENCES public.warehouses(id) ON DELETE CASCADE;
+
+
+--
+-- Name: inventory_lots inventory_lots_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_lots
+    ADD CONSTRAINT inventory_lots_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+
+--
+-- Name: inventory_lots inventory_lots_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_lots
+    ADD CONSTRAINT inventory_lots_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.items(id);
+
+
+--
+-- Name: inventory_move_lines inventory_move_lines_from_warehouse_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_move_lines
+    ADD CONSTRAINT inventory_move_lines_from_warehouse_id_fkey FOREIGN KEY (from_warehouse_id) REFERENCES public.warehouses(id);
+
+
+--
+-- Name: inventory_move_lines inventory_move_lines_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_move_lines
+    ADD CONSTRAINT inventory_move_lines_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.items(id);
+
+
+--
+-- Name: inventory_move_lines inventory_move_lines_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_move_lines
+    ADD CONSTRAINT inventory_move_lines_lot_id_fkey FOREIGN KEY (lot_id) REFERENCES public.inventory_lots(id);
+
+
+--
+-- Name: inventory_move_lines inventory_move_lines_move_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_move_lines
+    ADD CONSTRAINT inventory_move_lines_move_id_fkey FOREIGN KEY (move_id) REFERENCES public.inventory_moves(id) ON DELETE CASCADE;
+
+
+--
+-- Name: inventory_move_lines inventory_move_lines_reason_code_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_move_lines
+    ADD CONSTRAINT inventory_move_lines_reason_code_id_fkey FOREIGN KEY (reason_code_id) REFERENCES public.reason_codes(id);
+
+
+--
+-- Name: inventory_move_lines inventory_move_lines_to_warehouse_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_move_lines
+    ADD CONSTRAINT inventory_move_lines_to_warehouse_id_fkey FOREIGN KEY (to_warehouse_id) REFERENCES public.warehouses(id);
+
+
+--
+-- Name: inventory_move_lines inventory_move_lines_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_move_lines
+    ADD CONSTRAINT inventory_move_lines_uom_id_fkey FOREIGN KEY (uom_id) REFERENCES public.uoms(id);
+
+
+--
+-- Name: inventory_moves inventory_moves_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_moves
+    ADD CONSTRAINT inventory_moves_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+
+--
+-- Name: inventory_moves inventory_moves_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_moves
+    ADD CONSTRAINT inventory_moves_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
+
+
+--
+-- Name: iqc_records iqc_records_goods_receipt_line_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.iqc_records
+    ADD CONSTRAINT iqc_records_goods_receipt_line_id_fkey FOREIGN KEY (goods_receipt_line_id) REFERENCES public.goods_receipt_lines(id) ON DELETE CASCADE;
+
+
+--
+-- Name: iqc_records iqc_records_reason_code_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.iqc_records
+    ADD CONSTRAINT iqc_records_reason_code_id_fkey FOREIGN KEY (reason_code_id) REFERENCES public.reason_codes(id);
+
+
+--
+-- Name: item_cycle_time_versions item_cycle_time_versions_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.item_cycle_time_versions
+    ADD CONSTRAINT item_cycle_time_versions_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+
+--
+-- Name: item_cycle_time_versions item_cycle_time_versions_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.item_cycle_time_versions
+    ADD CONSTRAINT item_cycle_time_versions_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.items(id);
+
+
+--
+-- Name: item_cycle_time_versions item_cycle_time_versions_work_center_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.item_cycle_time_versions
+    ADD CONSTRAINT item_cycle_time_versions_work_center_id_fkey FOREIGN KEY (work_center_id) REFERENCES public.work_centers(id);
+
+
+--
+-- Name: item_uom_conversions item_uom_conversions_from_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.item_uom_conversions
+    ADD CONSTRAINT item_uom_conversions_from_uom_id_fkey FOREIGN KEY (from_uom_id) REFERENCES public.uoms(id);
+
+
+--
+-- Name: item_uom_conversions item_uom_conversions_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.item_uom_conversions
+    ADD CONSTRAINT item_uom_conversions_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.items(id) ON DELETE CASCADE;
+
+
+--
+-- Name: item_uom_conversions item_uom_conversions_to_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.item_uom_conversions
+    ADD CONSTRAINT item_uom_conversions_to_uom_id_fkey FOREIGN KEY (to_uom_id) REFERENCES public.uoms(id);
+
+
+--
+-- Name: items items_base_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.items
+    ADD CONSTRAINT items_base_uom_id_fkey FOREIGN KEY (base_uom_id) REFERENCES public.uoms(id);
+
+
+--
+-- Name: items items_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.items
+    ADD CONSTRAINT items_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+
+--
+-- Name: lot_uom_conversions lot_uom_conversions_from_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lot_uom_conversions
+    ADD CONSTRAINT lot_uom_conversions_from_uom_id_fkey FOREIGN KEY (from_uom_id) REFERENCES public.uoms(id);
+
+
+--
+-- Name: lot_uom_conversions lot_uom_conversions_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lot_uom_conversions
+    ADD CONSTRAINT lot_uom_conversions_lot_id_fkey FOREIGN KEY (lot_id) REFERENCES public.inventory_lots(id) ON DELETE CASCADE;
+
+
+--
+-- Name: lot_uom_conversions lot_uom_conversions_to_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lot_uom_conversions
+    ADD CONSTRAINT lot_uom_conversions_to_uom_id_fkey FOREIGN KEY (to_uom_id) REFERENCES public.uoms(id);
+
+
+--
+-- Name: production_lots production_lots_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.production_lots
+    ADD CONSTRAINT production_lots_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+
+--
+-- Name: production_lots production_lots_fg_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.production_lots
+    ADD CONSTRAINT production_lots_fg_lot_id_fkey FOREIGN KEY (fg_lot_id) REFERENCES public.inventory_lots(id);
+
+
+--
+-- Name: production_lots production_lots_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.production_lots
+    ADD CONSTRAINT production_lots_uom_id_fkey FOREIGN KEY (uom_id) REFERENCES public.uoms(id);
+
+
+--
+-- Name: production_lots production_lots_work_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.production_lots
+    ADD CONSTRAINT production_lots_work_order_id_fkey FOREIGN KEY (work_order_id) REFERENCES public.work_orders(id) ON DELETE CASCADE;
+
+
+--
+-- Name: production_schedules production_schedules_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.production_schedules
+    ADD CONSTRAINT production_schedules_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+
+--
+-- Name: production_schedules production_schedules_cycle_time_version_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.production_schedules
+    ADD CONSTRAINT production_schedules_cycle_time_version_id_fkey FOREIGN KEY (cycle_time_version_id) REFERENCES public.item_cycle_time_versions(id);
+
+
+--
+-- Name: production_schedules production_schedules_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.production_schedules
+    ADD CONSTRAINT production_schedules_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
+
+
+--
+-- Name: production_schedules production_schedules_work_center_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.production_schedules
+    ADD CONSTRAINT production_schedules_work_center_id_fkey FOREIGN KEY (work_center_id) REFERENCES public.work_centers(id);
+
+
+--
+-- Name: production_schedules production_schedules_work_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.production_schedules
+    ADD CONSTRAINT production_schedules_work_order_id_fkey FOREIGN KEY (work_order_id) REFERENCES public.work_orders(id) ON DELETE CASCADE;
+
+
+--
+-- Name: purchase_order_lines purchase_order_lines_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.purchase_order_lines
+    ADD CONSTRAINT purchase_order_lines_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.items(id);
+
+
+--
+-- Name: purchase_order_lines purchase_order_lines_purchase_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.purchase_order_lines
+    ADD CONSTRAINT purchase_order_lines_purchase_order_id_fkey FOREIGN KEY (purchase_order_id) REFERENCES public.purchase_orders(id) ON DELETE CASCADE;
+
+
+--
+-- Name: purchase_order_lines purchase_order_lines_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.purchase_order_lines
+    ADD CONSTRAINT purchase_order_lines_uom_id_fkey FOREIGN KEY (uom_id) REFERENCES public.uoms(id);
+
+
+--
+-- Name: purchase_orders purchase_orders_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.purchase_orders
+    ADD CONSTRAINT purchase_orders_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+
+--
+-- Name: purchase_orders purchase_orders_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.purchase_orders
+    ADD CONSTRAINT purchase_orders_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
+
+
+--
+-- Name: purchase_orders purchase_orders_supplier_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.purchase_orders
+    ADD CONSTRAINT purchase_orders_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES public.suppliers(id);
+
+
+--
+-- Name: reason_codes reason_codes_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reason_codes
+    ADD CONSTRAINT reason_codes_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+
+--
+-- Name: sales_order_lines sales_order_lines_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_order_lines
+    ADD CONSTRAINT sales_order_lines_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.items(id);
+
+
+--
+-- Name: sales_order_lines sales_order_lines_sales_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_order_lines
+    ADD CONSTRAINT sales_order_lines_sales_order_id_fkey FOREIGN KEY (sales_order_id) REFERENCES public.sales_orders(id) ON DELETE CASCADE;
+
+
+--
+-- Name: sales_order_lines sales_order_lines_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_order_lines
+    ADD CONSTRAINT sales_order_lines_uom_id_fkey FOREIGN KEY (uom_id) REFERENCES public.uoms(id);
+
+
+--
+-- Name: sales_orders sales_orders_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_orders
+    ADD CONSTRAINT sales_orders_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+
+--
+-- Name: sales_orders sales_orders_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_orders
+    ADD CONSTRAINT sales_orders_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id);
+
+
+--
+-- Name: sales_orders sales_orders_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_orders
+    ADD CONSTRAINT sales_orders_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
+
+
+--
+-- Name: shipment_lines shipment_lines_from_warehouse_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shipment_lines
+    ADD CONSTRAINT shipment_lines_from_warehouse_id_fkey FOREIGN KEY (from_warehouse_id) REFERENCES public.warehouses(id);
+
+
+--
+-- Name: shipment_lines shipment_lines_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shipment_lines
+    ADD CONSTRAINT shipment_lines_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.items(id);
+
+
+--
+-- Name: shipment_lines shipment_lines_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shipment_lines
+    ADD CONSTRAINT shipment_lines_lot_id_fkey FOREIGN KEY (lot_id) REFERENCES public.inventory_lots(id);
+
+
+--
+-- Name: shipment_lines shipment_lines_sales_order_line_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shipment_lines
+    ADD CONSTRAINT shipment_lines_sales_order_line_id_fkey FOREIGN KEY (sales_order_line_id) REFERENCES public.sales_order_lines(id);
+
+
+--
+-- Name: shipment_lines shipment_lines_shipment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shipment_lines
+    ADD CONSTRAINT shipment_lines_shipment_id_fkey FOREIGN KEY (shipment_id) REFERENCES public.shipments(id) ON DELETE CASCADE;
+
+
+--
+-- Name: shipment_lines shipment_lines_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shipment_lines
+    ADD CONSTRAINT shipment_lines_uom_id_fkey FOREIGN KEY (uom_id) REFERENCES public.uoms(id);
+
+
+--
+-- Name: shipments shipments_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shipments
+    ADD CONSTRAINT shipments_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+
+--
+-- Name: shipments shipments_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shipments
+    ADD CONSTRAINT shipments_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id);
+
+
+--
+-- Name: shipments shipments_sales_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shipments
+    ADD CONSTRAINT shipments_sales_order_id_fkey FOREIGN KEY (sales_order_id) REFERENCES public.sales_orders(id);
+
+
+--
+-- Name: shipments shipments_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shipments
+    ADD CONSTRAINT shipments_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
+
+
+--
+-- Name: sites sites_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sites
+    ADD CONSTRAINT sites_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+
+--
+-- Name: suppliers suppliers_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.suppliers
+    ADD CONSTRAINT suppliers_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+
+--
+-- Name: sys_idempotency_keys sys_idempotency_keys_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sys_idempotency_keys
+    ADD CONSTRAINT sys_idempotency_keys_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+
+--
+-- Name: sys_memberships sys_memberships_role_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sys_memberships
+    ADD CONSTRAINT sys_memberships_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.sys_roles(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: sys_memberships sys_memberships_tenant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sys_memberships
+    ADD CONSTRAINT sys_memberships_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.sys_tenants(id) ON DELETE CASCADE;
+
+
+--
+-- Name: sys_role_permissions sys_role_permissions_permission_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sys_role_permissions
+    ADD CONSTRAINT sys_role_permissions_permission_id_fkey FOREIGN KEY (permission_id) REFERENCES public.sys_permissions(id) ON DELETE CASCADE;
+
+
+--
+-- Name: sys_role_permissions sys_role_permissions_role_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sys_role_permissions
+    ADD CONSTRAINT sys_role_permissions_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.sys_roles(id) ON DELETE CASCADE;
+
+
+--
+-- Name: sys_roles sys_roles_tenant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sys_roles
+    ADD CONSTRAINT sys_roles_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.sys_tenants(id) ON DELETE CASCADE;
+
+
+--
+-- Name: warehouses warehouses_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.warehouses
+    ADD CONSTRAINT warehouses_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
+
+
+--
+-- Name: work_centers work_centers_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.work_centers
+    ADD CONSTRAINT work_centers_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+
+--
+-- Name: work_centers work_centers_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.work_centers
+    ADD CONSTRAINT work_centers_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
+
+
+--
+-- Name: work_order_events work_order_events_work_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.work_order_events
+    ADD CONSTRAINT work_order_events_work_order_id_fkey FOREIGN KEY (work_order_id) REFERENCES public.work_orders(id) ON DELETE CASCADE;
+
+
+--
+-- Name: work_orders work_orders_bom_version_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.work_orders
+    ADD CONSTRAINT work_orders_bom_version_id_fkey FOREIGN KEY (bom_version_id) REFERENCES public.bom_versions(id);
+
+
+--
+-- Name: work_orders work_orders_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.work_orders
+    ADD CONSTRAINT work_orders_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+
+--
+-- Name: work_orders work_orders_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.work_orders
+    ADD CONSTRAINT work_orders_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.items(id);
+
+
+--
+-- Name: work_orders work_orders_primary_warehouse_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.work_orders
+    ADD CONSTRAINT work_orders_primary_warehouse_id_fkey FOREIGN KEY (primary_warehouse_id) REFERENCES public.warehouses(id);
+
+
+--
+-- Name: work_orders work_orders_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.work_orders
+    ADD CONSTRAINT work_orders_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
+
+
+--
+-- Name: work_orders work_orders_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.work_orders
+    ADD CONSTRAINT work_orders_uom_id_fkey FOREIGN KEY (uom_id) REFERENCES public.uoms(id);
+
+
+--
+-- Name: sys_memberships memberships_select_self; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY memberships_select_self ON public.sys_memberships FOR SELECT TO authenticated USING ((user_id = auth.uid()));
+
+
+--
+-- Name: sys_memberships memberships_select_tenant_admin; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY memberships_select_tenant_admin ON public.sys_memberships FOR SELECT TO authenticated USING (public.is_tenant_admin(tenant_id, auth.uid()));
+
+
+--
+-- Name: sys_memberships memberships_write_service; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY memberships_write_service ON public.sys_memberships TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: sys_memberships memberships_write_tenant_admin; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY memberships_write_tenant_admin ON public.sys_memberships FOR INSERT TO authenticated WITH CHECK (public.is_tenant_admin(tenant_id, auth.uid()));
+
+
+--
+-- Name: sys_permissions perms_select_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY perms_select_all ON public.sys_permissions FOR SELECT TO anon, authenticated USING (true);
+
+
+--
+-- Name: sys_permissions perms_write_service; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY perms_write_service ON public.sys_permissions TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: sys_role_permissions role_perms_select_by_membership; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY role_perms_select_by_membership ON public.sys_role_permissions FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.sys_roles r
+  WHERE ((r.id = sys_role_permissions.role_id) AND public.is_tenant_member(r.tenant_id, auth.uid())))));
+
+
+--
+-- Name: sys_role_permissions role_perms_write_by_permission; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY role_perms_write_by_permission ON public.sys_role_permissions TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.sys_roles r
+  WHERE ((r.id = sys_role_permissions.role_id) AND public.has_permission(r.tenant_id, auth.uid(), 'rbac.role_permissions.write'::text))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM public.sys_roles r
+  WHERE ((r.id = sys_role_permissions.role_id) AND public.has_permission(r.tenant_id, auth.uid(), 'rbac.role_permissions.write'::text)))));
+
+
+--
+-- Name: sys_role_permissions role_perms_write_service; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY role_perms_write_service ON public.sys_role_permissions TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: sys_roles roles_delete_by_permission; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY roles_delete_by_permission ON public.sys_roles FOR DELETE TO authenticated USING (public.has_permission(tenant_id, auth.uid(), 'rbac.roles.write'::text));
+
+
+--
+-- Name: sys_roles roles_select_by_membership; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY roles_select_by_membership ON public.sys_roles FOR SELECT TO authenticated USING (public.is_tenant_member(tenant_id, auth.uid()));
+
+
+--
+-- Name: sys_roles roles_update_by_permission; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY roles_update_by_permission ON public.sys_roles FOR UPDATE TO authenticated USING (public.has_permission(tenant_id, auth.uid(), 'rbac.roles.write'::text)) WITH CHECK (public.has_permission(tenant_id, auth.uid(), 'rbac.roles.write'::text));
+
+
+--
+-- Name: sys_roles roles_write_by_permission; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY roles_write_by_permission ON public.sys_roles FOR INSERT TO authenticated WITH CHECK (public.has_permission(tenant_id, auth.uid(), 'rbac.roles.write'::text));
+
+
+--
+-- Name: sys_roles roles_write_service; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY roles_write_service ON public.sys_roles TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: sys_memberships; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.sys_memberships ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: sys_permissions; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.sys_permissions ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: sys_role_permissions; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.sys_role_permissions ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: sys_roles; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.sys_roles ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: sys_tenants; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.sys_tenants ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: sys_users; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.sys_users ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: sys_tenants tenants_select_own; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenants_select_own ON public.sys_tenants FOR SELECT TO authenticated USING (public.is_tenant_member(id, auth.uid()));
+
+
+--
+-- Name: sys_tenants tenants_write_service; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenants_write_service ON public.sys_tenants TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: sys_users users_select_self; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY users_select_self ON public.sys_users FOR SELECT TO authenticated USING ((id = auth.uid()));
+
+
+--
+-- Name: sys_users users_update_self; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY users_update_self ON public.sys_users FOR UPDATE TO authenticated USING ((id = auth.uid())) WITH CHECK ((id = auth.uid()));
+
+
+--
+-- Name: sys_users users_write_service; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY users_write_service ON public.sys_users TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- PostgreSQL database dump complete
+--
+
+\unrestrict NbT3cZxOxUPcXJYVMk4drtXLzqvoWwdMN52npSMBaxTBCQgLslaPw4Cp0npl5xd
+
