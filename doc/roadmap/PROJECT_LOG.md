@@ -1,4 +1,64 @@
 
+Title：12 APP-01 INFRA-01處理方案:12 SVC-APP-02 Purchase Loop（PO → GRN → Inventory）Newman Gate 打通 + Tag 固化
+Date：2026-01-29
+Stage：Demo
+Phase：P2
+Status：Done
+Scope Impact：API / DB / Docs / Ops
+Related SVC：SVC-APP-02
+Next Owner：You / Claude(VSCode) / ChatGPT(Web)
+Tags（可選）：newman-gate, seed, postman, rbac, rls, tag, release
+
+1. 結論（已定案）
+
+* APP-02 測試回路已跑通：Newman 14 requests / 35 assertions / **0 failed**（Auth + Purchase Loop 全綠）
+* DB 端已完成可重播初始化鏈：**restore phase1 baseline → 套 RBAC/RLS stage2b → seed(001) → seed(002)** 成功 COMMIT
+* 已完成版本固化：commit + tag `app-02-purchase-loop-v0.1.0` 並 push 到 GitHub
+
+2. 本次確定方案邊界取捨
+
+* 嚴守「不擴戰場」：只修 **seed UUID 合法性 + Postman env 對齊 + inventory_balances 欄位 mapping**，不提前做更深層交易/會計邏輯
+* 以「Newman Gate」作為唯一驗收標準（企業式 Gatekeeper），避免口頭驗收漂移
+* tag 驗收採 **detached HEAD** 是刻意設計：用里程碑快照確保可重播性
+
+3. 未決事項
+
+* GitHub **default branch** 目前指向 `claude/...` 分支（可用但不理想），是否改回 `main`
+* 是否將 `svc/stage2c-company-scope` 以 PR merge 回 `main`（治理策略待定）
+
+4. 下一步（1–3 個最小動作）
+
+* GitHub → Settings → Branches → 將 **Default branch 改為 `main`**
+* （可選）開 PR：`svc/stage2c-company-scope` → `main`，把里程碑納入主線
+* （可選）補一條 runbook：標準重播指令（restore→rbac→seed→newman）做成一鍵腳本
+
+5. 驗收錨點（可觀測結果）
+
+* Newman：`failed 0`（APP-01 + APP-02 全部綠）
+* API log：`/purchase-orders 201`、`/goods-receipt-notes 201`、`/inventory-balances 200`、no-auth `401`、cross-company `403`
+* DB seed：`seeds/002_purchase_test_data.sql` 執行結果 **COMMIT**
+* Git：遠端可見 tag `app-02-purchase-loop-v0.1.0`（`git ls-remote --tags origin` 可查到）
+
+6. 風險與防線 / 變更紀錄
+
+* 風險：Postman env 與 seed UUID 不一致 → 500/uuid syntax error 回歸
+
+  * 防線：固定 UUID + env 對齊 + Newman Gate 每次必跑
+* 風險：inventory_balances 欄位名漂移（如 qty_on_hand/qty）→ 500
+
+  * 防線：以 `\d+ inventory_balances` 為單一事實來源，改 code 對齊後鎖 Gate
+* 風險：`npm start &` 重複啟動導致 `EADDRINUSE`
+
+  * 防線：只保留單一 API process（必要時先 kill 3001）
+* 變更紀錄（里程碑）
+
+  * 新增：`apps/api/src/routes/purchase.js`、`apps/api/seeds/002_purchase_test_data.sql`、`doc/runbooks/APP-02-PURCHASE-LOOP.md`
+  * 修改：Postman collection/env、API index 掛載 purchase routes、Roadmap/Project log 文件
+  * 發佈：tag `app-02-purchase-loop-v0.1.0` 已推送至遠端
+
+
+
+
 Title：11 恢復可重播交付:11 APP-01 Auth Skeleton 驗收通過與里程碑存檔
 
 Date：2026-01-28

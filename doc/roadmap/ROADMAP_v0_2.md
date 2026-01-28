@@ -1,119 +1,176 @@
-# ROADMAP v0.2.2 — 雙軌並行路徑圖 (Dual-Track Strategy)
+沒問題。這種**「全景視圖 (Full Panorama)」**的 Roadmap 非常重要，它能讓你一眼看到我們走了多遠，以及距離終點還有多遠。
 
-* **版本**：v0.2.2 (Post-INFRA-01 Fix)
-* **日期**：2026-01-28
-* **依據**：`PROJECT_LOG_rewrited.md` (Up to Entry [12])
-* **狀態總結**：
-  * **底層 (Infra)**：🟢 **READY**。Stage 2A 還原腳本已修復，`make reset` < 5s 可用。
-  * **業務 (App)**：🟢 **READY**。後端骨架 (APP-01) 已完成，可以開始堆疊業務邏輯 (APP-02)。
+這份 **`ROADMAP_v0_3.md`** 採用了您要求的 **Checkbox 檢核表** 格式。所有任務（包含已完成的歷史任務）都已列出，並根據 **Project Log Entry [12]** 更新了勾選狀態。
+
+請將以下內容存檔為 `ROADMAP_v0_3.md`。
+
+---
+
+# ROADMAP v0.3 — SIP AIOS 全景實施清單
+
+* **版本**：v0.3 (Full Checklist View)
+* **日期**：2026-01-29
+* **基準**：Project Log Entry [12] (API 閉環與 Restore 修復完成)
+* **說明**：
+* `[x]` = 已完成且驗證通過 (Done & Verified)
+* `[ ]` = 待執行 (To-Do)
+* **Tracks**：嚴格區分為 **Track A (底層架構)** 與 **Track B (業務應用)**。
 
 
 
 ---
 
-## 軌道 A：SIP AIOS 底層架構 (Infrastructure Track)
+## 🟥 Track A：SIP AIOS 底層架構 (Infrastructure)
 
-> **負責人**：Architect / DevOps
-> **目標**：提供「可隨時自殺重來」的穩定環境，確保業務邏輯開發時不會被髒數據卡死。
+> **目標**：打造「打不掛、可回放、可搬遷、多租戶」的運行環境。
 
-### ✅ 1. 已完成 (Completed Achievements)
+### Phase 0: 環境與地基 (Foundation)
 
-| 里程碑 | 具體產出與證明 | 意義 |
-| --- | --- | --- |
-| **Stage 1: Repo Setup** | `ARCHITECTURE.md`, `00_INDEX.md` | 確立開發規範與文件導航。 |
-| **Stage 2C: Tenant Isolation** | `sys_tenants` 表 + Composite FK 強制約束 | **物理級別防止資料外洩**。DB 拒絕寫入跨租戶資料。 |
-| **Stage 2C: Hybrid Model** | `sys_tenants.slug` 對齊 `companies.code` | 解決 SaaS 與 On-Prem 架構不相容問題。 |
-| **Schema Verification** | `schema-probed` 驗證機制 | 自動檢查 DB Schema 是否符合 V2.1 規範。 |
+* [x] **INFRA-001: 開發環境標準化**
+* *內容*：建立 WSL2 + Docker Compose 運行環境 (Postgres, Nginx)。
+* *驗收*：`docker compose up` 可啟動 DB，Port 5432 可連線。
 
-### ✅ 2. 已解決卡點 (Resolved Blocker) — ~~P0~~ **DONE**
 
-* **✅ 任務：Fix Restore Baseline (Stage 2A Remediation)** — **已完成 (Entry [12])**
-* **解法**：`08_restore_latest_phase1_baseline.sh` 採用 `DROP SCHEMA public CASCADE` + `CREATE SCHEMA public` 策略。
-* **結果**：`make reset` 執行時間 **~4.2 秒**（目標 < 30s），verify PASS。
-* **來源**：Project Log Entry [12] (resolved Entry [9]).
+* [x] **INFRA-002: 文件體系確立 (The Bible)**
+* *內容*：撰寫 `ARCHITECTURE.md`, `README.md`, `SIP AIOS 計畫書 V2.1`。
+* *驗收*：所有開發規則、資料夾結構定義清晰。
 
 
 
-### 🚀 3. 下一步目標 (Upcoming Objectives)
+### Phase 1: 資料完整性與可恢復性 (Data Integrity)
 
-| 順序 | 任務代號 | 任務名稱 (What) | 驗收標準 (Acceptance Criteria) |
-| --- | --- | --- | --- |
-| ~~1~~ | ~~INFRA-01~~ | ~~修復一鍵重置~~ | ✅ **DONE** — `make reset` < 5s, verify PASS |
-| **1** | **INFRA-02** | **可觀測性基礎 (Observability)** | 部署 Loki + Prometheus。能看到 API Access Log 與 DB Slow Query Log。 |
-| **2** | **INFRA-03** | **離線遷移工具 (Offline Copy)** | 撰寫 Script，能將指定 Tenant ID 的資料匯出成 SQL 包，並能在另一台機器匯入。 |
-
----
-
-## 軌道 B：ERP 業務應用 (Business Logic Track)
-
-> **負責人**：Full-Stack Developer
-> **目標**：實現《系統計劃書 V1.1》定義的商業價值。
-
-### ✅ 1. 已完成 (Completed Achievements)
-
-| 里程碑 | 具體產出與證明 | 意義 |
-| --- | --- | --- |
-| **Business Schema V1.1** | V1.1 SQLs (`purchase_orders`, `stock`, etc.) | 業務規則（Backflush, FIFO）已固化在 DB 結構中。 |
-| **APP-01: Skeleton & Auth** | **Express API Server** + Postman Tests | [Entry 11] `/health` 通過, `/login` 可換 JWT, `/switch-company` 可切換租戶。 |
-
-### 🛑 2. 當前狀態 (Current Status) — **骨架已立，準備填肉**
-
-* 後端 API 已經可以跑起來 (Port 3001)，並且能處理身分驗證。
-* **缺口**：還沒有任何實際的業務 API (PO, GRN, MO)。
-
-### 🚀 3. 下一步目標 (Upcoming Objectives)
-
-| 順序 | 任務代號 | 任務名稱 (What) | 驗收標準 (Acceptance Criteria) |
-| --- | --- | --- | --- |
-| **1** | **APP-02** | **採購閉環 (Purchase Loop)** | **API Only (先)**：<br>
-
-<br>1. `POST /purchase-orders` (建立 PO)<br>
-
-<br>2. `POST /goods-receipt-notes` (收貨 GRN)<br>
-
-<br>3. 驗證 `inventory_balance` 庫存增加。<br>
-
-<br>4. 需提供 Postman Collection 證明跑通。 |
-| **2** | **APP-03** | **生產閉環 (Production Loop)** | **API Only**：<br>
-
-<br>1. `POST /manufacturing-orders` (開工單)<br>
-
-<br>2. `POST /production-report` (報工+Backflush)<br>
-
-<br>3. 驗證 Raw Material 扣除, FG 增加。<br>
-
-<br>4. 驗證 Lot Tracking (批號追溯)。 |
-| **3** | **APP-04** | **前端 UI (Purchase UI)** | 將 APP-02 的 API 接上 React 前端畫面 (列表 + 表單)。 |
-
----
-
-## 4. 關鍵依賴與風險 (Critical Dependencies)
-
-1. **APP-02 依賴 INFRA-01**：
-* 雖然 `APP-02` (採購) 可以現在開始寫，但**強烈建議**先修好 `INFRA-01` (Restore)。
-* *風險*：如果在沒有 Restore 的情況下開發 APP-02，測試產生的髒數據無法清除，會導致 Postman 自動化測試不穩定。
+* [x] **INFRA-003: Database Schema V1.1 (SQL)**
+* *內容*：定義核心 Table (`companies`, `users`, `purchase_orders`, `stock` 等)。
+* *驗收*：SQL 檔案可被 Postgres 執行無報錯。
 
 
-2. **APP-01 的技術債**：
-* 目前使用 `npm` (在 `apps/api` 下) 而非 root 的 `pnpm`。需確保 CI/CD 流程能兼容。
-* Auth 目前只有 Access Token，無 Refresh Token (Phase 2 暫不處理，接受短期過期)。
+* [x] **INFRA-004: 一鍵還原機制 (Restore Baseline)** `[Critical]`
+* *內容*：解決 Circular Dependency，修復 `restore.sh` 與 `make reset`。
+* *驗收*：**(Entry 12 已通過)** 執行 `make reset` < 5秒，資料庫回到初始乾淨狀態。
+
+
+* [x] **INFRA-005: 基礎種子資料 (Seed Data)**
+* *內容*：寫入預設 Admin User、Tenant 資料、基礎單位 (UOM)。
+* *驗收*：DB 重置後，能查詢到 `admin@example.com`。
+
+
+
+### Phase 2: 多租戶與安全性 (Multi-Tenancy & Security)
+
+* [x] **INFRA-006: 租戶隔離 (Tenant Isolation)**
+* *內容*：實作 `sys_tenants` 表，並在業務表強制加上 `company_id` 複合外鍵 (Composite FK)。
+* *驗收*：嘗試在 Tenant A 插入 Tenant B 的資料時，DB 層直接噴錯拒絕。
+
+
+* [x] **INFRA-007: 混合部署模型 (Hybrid Model)**
+* *內容*：統一 SaaS 與 On-Prem 的資料結構 (`slug` mapping)。
+* *驗收*：同一套 Schema 可支援單機部署與雲端多租戶。
+
+
+* [ ] **INFRA-008: 可觀測性堆疊 (Observability)**
+* *內容*：部署 Loki (Logs) + Prometheus (Metrics)。
+* *驗收*：能看到 Nginx Access Log 與 API Error Log。
+
+
+* [ ] **INFRA-009: 離線遷移工具 (Offline Copy)**
+* *內容*：開發 `export-tenant.sh` 與 `import-tenant.sh`。
+* *驗收*：能將 Tenant A 打包成 ZIP，並在另一台乾淨機器還原。
 
 
 
 ---
 
-## 5. 給 Agent 的執行指令 (Actionable Plan)
+## 🟦 Track B：ERP 業務應用 (Business & UI)
 
-請依照以下順序指派 SVC (Service Tasks)：
+> **目標**：實現《系統計劃書 V1.1》的商業邏輯，從 API 到 UI。
 
-1. ~~**[🔴 P0 急件] SVC-INFRA-01**~~ ✅ **DONE (Entry [12])**
-   * `make reset` < 5s, verify PASS. Track A 已解鎖。
+### Phase 1: 後端骨架與權限 (Backend Core)
 
-2. **[🟡 P1 業務] SVC-APP-02**:
-* **指令**： "Based on `APP-01` skeleton, implement the Purchase Order -> GRN flow (Schema V1.1). Create strict DTOs and Service logic. Verify with Postman."
-* **目的**：產出第一個業務閉環證據。
+* [x] **APP-001: API Server 初始化**
+* *內容*：建立 Express/NestJS 專案結構，連接 Postgres。
+* *驗收*：`/health` 回傳 200 OK。
 
 
-3. **[⚪ P2 待命] SVC-APP-03**:
-* **指令**： "Implement Manufacturing Order and Backflush logic."
-* **目的**：產出生產核心閉環。
+* [x] **APP-002: 身分驗證 (Auth & JWT)**
+* *內容*：實作登入 (`/login`)、切換公司 (`/switch-company`)。
+* *驗收*：**(Entry 11 已通過)** Postman 取得 Token，且解析 Token 內含正確 `company_id`。
+
+
+
+### Phase 2: 採購與庫存閉環 (Purchase Domain)
+
+* [x] **APP-003: 採購流程 API (Purchase Loop)**
+* *內容*：實作 `Create PO` -> `Approve` -> `Create GRN` (收貨)。
+* *驗收*：**(Entry 12 已通過)** Newman 自動化測試 14/14 PASS。
+
+
+* [x] **APP-004: 庫存連動邏輯 (Inventory Effect)**
+* *內容*：收貨 (GRN) 自動增加 `inventory_balance` 與 `stock_movements`。
+* *驗收*：DB 查詢庫存表，數量準確增加。
+
+
+* [ ] **APP-005: 採購前端畫面 (Purchase UI)**
+* *內容*：
+* [ ] 採購單列表與建立表單
+* [ ] 收貨單 (GRN) 掃碼/輸入介面
+
+
+* *驗收*：使用者能透過瀏覽器完成採購收貨流程。
+
+
+
+### Phase 3: 生產與製造閉環 (Production Domain)
+
+* [ ] **APP-006: 生產工單 API (MO Logic)**
+* *內容*：開立工單 (MO)，鎖定 BOM 版本。
+* *驗收*：Postman 建立 MO 成功。
+
+
+* [ ] **APP-007: 倒扣料與報工 API (Backflush)** `[Hard]`
+* *內容*：生產完工申報 -> 自動扣減原料庫存 (FIFO) -> 增加成品庫存。
+* *驗收*：**關鍵！** 原料庫存減少，成品庫存增加，且 Lot (批號) 追溯鏈路完整。
+
+
+* [ ] **APP-008: 生產前端畫面 (Production UI)**
+* *內容*：
+* [ ] 現場報工介面 (Mobile/Pad 適配)
+* [ ] 工單管理後台
+
+
+* *驗收*：作業員能用模擬手機畫面點擊「開始生產」與「完工」。
+
+
+
+### Phase 4: 平台基礎 UI (Platform UI)
+
+* [ ] **APP-009: 前端專案架構**
+* *內容*：React/Next.js 初始化，整合 Tailwind/AntD/MUI。
+* *驗收*：首頁可見。
+
+
+* [ ] **APP-010: 登入與導航 (Shell)**
+* *內容*：登入頁面、側邊欄 (Sidebar)、麵包屑 (Breadcrumbs)。
+* *驗收*：登入後跳轉至 Dashboard，Token 儲存於 LocalStorage/Cookie。
+
+
+
+---
+
+## 🎯 當前執行焦點 (Current Focus)
+
+根據 Entry [12] 的進度，我們剛完成了 `APP-003` 與 `APP-004` (採購 API)。
+現在的**戰略決策**是：
+
+1. **優先級 P1**：**APP-006 & APP-007 (生產 API)**。
+* *原因*：生產邏輯最複雜，風險最高，先寫 API 確保邏輯正確。
+
+
+2. **優先級 P2**：**APP-009 & APP-010 (前端啟動)**。
+* *原因*：有了 API 卻沒畫面，無法給非技術人員 Demo。
+
+
+
+**給 Agent 的下一條指令建議：**
+
+> "Execute **SVC-APP-006**: Implement Manufacturing Order API. Focus on BOM version locking and MO creation logic first."
+
