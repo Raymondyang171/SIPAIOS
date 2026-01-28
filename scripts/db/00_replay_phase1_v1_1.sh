@@ -189,6 +189,16 @@ LOG_SUMMARY="$RUN_DIR/05_summary.txt"
   "$RESTORE_SCRIPT"
 ) 2>&1 | tee -a "$LOG_RESTORE" >/dev/null
 
+# Check if restore succeeded
+if [ ${PIPESTATUS[0]} -ne 0 ]; then
+  echo "[ERROR] Stage2A restore failed. Last 80 lines of log:" >&2
+  tail -n 80 "$LOG_RESTORE" >&2
+  echo "" >&2
+  echo "[EXIT] Stage2A failed at restore step" >&2
+  exit 1
+fi
+echo "[OK] Stage2A restore completed"
+
 # 2) Seed min_e2e
 (
   echo "[STEP] seed min_e2e"
