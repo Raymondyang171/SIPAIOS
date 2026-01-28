@@ -1,0 +1,643 @@
+{
+  "info": {
+    "name": "SIP AIOS API",
+    "description": "SIP AIOS API - APP-01 Auth Skeleton + APP-02 Purchase Loop",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "APP-01 Auth",
+      "item": [
+        {
+          "name": "Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('DB is connected', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql('ok');",
+                  "    pm.expect(jsonData.db).to.eql('connected');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "Login - Valid Credentials",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has token', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('token');",
+                  "    pm.expect(jsonData.token).to.be.a('string');",
+                  "    pm.environment.set('auth_token', jsonData.token);",
+                  "});",
+                  "",
+                  "pm.test('Response has user info', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.user).to.have.property('id');",
+                  "    pm.expect(jsonData.user).to.have.property('email');",
+                  "    pm.expect(jsonData.user.email).to.eql(pm.environment.get('test_email'));",
+                  "});",
+                  "",
+                  "pm.test('Response has companies list', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.companies).to.be.an('array');",
+                  "    pm.expect(jsonData.companies.length).to.be.at.least(1);",
+                  "});",
+                  "",
+                  "pm.test('Response has current_company', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.current_company).to.have.property('company_id');",
+                  "    pm.environment.set('current_company_id', jsonData.current_company.company_id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{test_email}}\",\n    \"password\": \"{{test_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": ["{{base_url}}"],
+              "path": ["login"]
+            }
+          }
+        },
+        {
+          "name": "Login - Invalid Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "pm.test('Error is AUTH_FAILED', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.eql('AUTH_FAILED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{test_email}}\",\n    \"password\": \"wrong-password\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": ["{{base_url}}"],
+              "path": ["login"]
+            }
+          }
+        },
+        {
+          "name": "Login - Missing Fields",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Error is VALIDATION_ERROR', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.eql('VALIDATION_ERROR');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{test_email}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": ["{{base_url}}"],
+              "path": ["login"]
+            }
+          }
+        },
+        {
+          "name": "Login - Multi-Company User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('User has multiple companies', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.companies.length).to.be.at.least(2);",
+                  "    pm.environment.set('multi_user_token', jsonData.token);",
+                  "    ",
+                  "    // Store second company ID for switch-company test",
+                  "    var secondCompany = jsonData.companies.find(c => c.company_id !== jsonData.current_company.company_id);",
+                  "    if (secondCompany) {",
+                  "        pm.environment.set('second_company_id', secondCompany.company_id);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"multi@demo.local\",\n    \"password\": \"{{test_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": ["{{base_url}}"],
+              "path": ["login"]
+            }
+          }
+        },
+        {
+          "name": "Switch Company - Valid",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has new token', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('token');",
+                  "    pm.expect(jsonData.token).to.not.eql(pm.environment.get('multi_user_token'));",
+                  "});",
+                  "",
+                  "pm.test('Current company is switched', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.current_company.company_id).to.eql(pm.environment.get('second_company_id'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{multi_user_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"company_id\": \"{{second_company_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/switch-company",
+              "host": ["{{base_url}}"],
+              "path": ["switch-company"]
+            }
+          }
+        },
+        {
+          "name": "Switch Company - No Membership",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "pm.test('Error is FORBIDDEN', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.eql('FORBIDDEN');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"company_id\": \"aaaaaaaa-bbbb-cccc-dddd-eeeeeeee0002\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/switch-company",
+              "host": ["{{base_url}}"],
+              "path": ["switch-company"]
+            }
+          }
+        },
+        {
+          "name": "Switch Company - No Auth Header",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "pm.test('Error is AUTH_REQUIRED', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.eql('AUTH_REQUIRED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"company_id\": \"{{current_company_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/switch-company",
+              "host": ["{{base_url}}"],
+              "path": ["switch-company"]
+            }
+          }
+        },
+        {
+          "name": "Switch Company - Missing company_id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Error is VALIDATION_ERROR', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.eql('VALIDATION_ERROR');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/switch-company",
+              "host": ["{{base_url}}"],
+              "path": ["switch-company"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "APP-02 Purchase Loop",
+      "item": [
+        {
+          "name": "Create PO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response has PO id and status', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('po_no');",
+                  "    pm.expect(jsonData.status).to.eql('draft');",
+                  "    pm.environment.set('created_po_id', jsonData.id);",
+                  "});",
+                  "",
+                  "pm.test('Response has lines', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.lines).to.be.an('array');",
+                  "    pm.expect(jsonData.lines.length).to.eql(1);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"supplier_id\": \"{{test_supplier_id}}\",\n    \"site_id\": \"{{test_site_id}}\",\n    \"lines\": [\n        {\n            \"item_id\": \"{{test_item_id}}\",\n            \"qty\": 100,\n            \"uom_id\": \"{{test_uom_id}}\",\n            \"unit_price\": 10.50\n        }\n    ],\n    \"note\": \"Test PO from Newman\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/purchase-orders",
+              "host": ["{{base_url}}"],
+              "path": ["purchase-orders"]
+            }
+          }
+        },
+        {
+          "name": "Create GRN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response has GRN id and status', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('grn_no');",
+                  "    pm.expect(jsonData.status).to.eql('received');",
+                  "    pm.environment.set('created_grn_id', jsonData.id);",
+                  "});",
+                  "",
+                  "pm.test('Response has lines', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.lines).to.be.an('array');",
+                  "    pm.expect(jsonData.lines.length).to.eql(1);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"supplier_id\": \"{{test_supplier_id}}\",\n    \"site_id\": \"{{test_site_id}}\",\n    \"purchase_order_id\": \"{{created_po_id}}\",\n    \"lines\": [\n        {\n            \"item_id\": \"{{test_item_id}}\",\n            \"qty_received\": 50,\n            \"uom_id\": \"{{test_uom_id}}\",\n            \"warehouse_id\": \"{{test_warehouse_id}}\"\n        }\n    ],\n    \"note\": \"Test GRN from Newman\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/goods-receipt-notes",
+              "host": ["{{base_url}}"],
+              "path": ["goods-receipt-notes"]
+            }
+          }
+        },
+        {
+          "name": "Get Inventory Balance",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has balances array', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('balances');",
+                  "    pm.expect(jsonData.balances).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Inventory balance shows received qty', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    var balance = jsonData.balances.find(b => b.item_id === pm.environment.get('test_item_id'));",
+                  "    pm.expect(balance).to.not.be.undefined;",
+                  "    pm.expect(parseFloat(balance.qty)).to.be.at.least(50);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/inventory-balances?item_id={{test_item_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["inventory-balances"],
+              "query": [
+                {
+                  "key": "item_id",
+                  "value": "{{test_item_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create PO - No Auth (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "pm.test('Error is AUTH_REQUIRED', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.eql('AUTH_REQUIRED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"supplier_id\": \"{{test_supplier_id}}\",\n    \"site_id\": \"{{test_site_id}}\",\n    \"lines\": [\n        {\n            \"item_id\": \"{{test_item_id}}\",\n            \"qty\": 100,\n            \"uom_id\": \"{{test_uom_id}}\"\n        }\n    ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/purchase-orders",
+              "host": ["{{base_url}}"],
+              "path": ["purchase-orders"]
+            }
+          }
+        },
+        {
+          "name": "Create PO - Cross Company (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "pm.test('Error is FORBIDDEN', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.eql('FORBIDDEN');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"supplier_id\": \"{{other_company_supplier_id}}\",\n    \"site_id\": \"{{test_site_id}}\",\n    \"lines\": [\n        {\n            \"item_id\": \"{{test_item_id}}\",\n            \"qty\": 100,\n            \"uom_id\": \"{{test_uom_id}}\"\n        }\n    ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/purchase-orders",
+              "host": ["{{base_url}}"],
+              "path": ["purchase-orders"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
