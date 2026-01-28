@@ -23,17 +23,7 @@ timestamp_now() {
   date -u +"%Y%m%dT%H%M%SZ"
 }
 
-run_psql_in_container () {
-  local sql_file="$1"
-  if [[ ! -f "$sql_file" ]]; then
-    echo "[ERROR] missing sql file: $sql_file" >&2
-    exit 1
-  fi
-  echo "[INFO] apply: $(basename "$sql_file")"
-  cat "$sql_file" | docker exec -i "$DB_CONTAINER" psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$DB_NAME"
-}
-
-# Setup artifacts directory
+# Setup artifacts directory (must be early to ensure failure summary can be written)
 TS="$(timestamp_now)"
 RUN_DIR="artifacts/replay/stage2c_1/$TS"
 mkdir -p "$RUN_DIR"
@@ -43,9 +33,68 @@ LOG_APPLY="$RUN_DIR/02_apply.log"
 LOG_VERIFY="$RUN_DIR/03_verify.log"
 LOG_SUMMARY="$RUN_DIR/04_summary.txt"
 
-trap 'echo "[ERROR] Stage2C-1 replay failed" >&2' ERR
+LAST_ERROR=""
+FAILED_STEP=""
+
+write_summary() {
+  local status="$1"
+  local error_msg="${2:-}"
+  local cross_denied="${3:-N/A}"
+  local same_allowed="${4:-N/A}"
+
+  cat > "$LOG_SUMMARY" <<SUM
+=== STAGE2C_REPLAY_SUMMARY ===
+timestamp_utc=$TS
+db_container=$DB_CONTAINER
+db_name=$DB_NAME
+ops_dir=$OPS_DIR
+stage2c_1=$status
+SUM
+
+  if [[ "$status" == "FAIL" && -n "$error_msg" ]]; then
+    echo "error=$error_msg" >> "$LOG_SUMMARY"
+    if [[ -n "$FAILED_STEP" ]]; then
+      echo "failed_step=$FAILED_STEP" >> "$LOG_SUMMARY"
+    fi
+  else
+    echo "verify_cross_company_denied=$cross_denied" >> "$LOG_SUMMARY"
+    echo "verify_same_company_allowed=$same_allowed" >> "$LOG_SUMMARY"
+  fi
+
+  echo "run_dir=$RUN_DIR" >> "$LOG_SUMMARY"
+}
+
+handle_error() {
+  local exit_code=$?
+  local line_no=$1
+  LAST_ERROR="Script failed at line $line_no (exit code: $exit_code)"
+
+  if [[ -z "$FAILED_STEP" ]]; then
+    FAILED_STEP="unknown"
+  fi
+
+  write_summary "FAIL" "$LAST_ERROR"
+  cat "$LOG_SUMMARY"
+  echo "[ERROR] Stage2C-1 replay failed: $LAST_ERROR" >&2
+  echo "[ERROR] See logs in: $RUN_DIR" >&2
+}
+
+trap 'handle_error $LINENO' ERR
+
+run_psql_in_container () {
+  local sql_file="$1"
+  if [[ ! -f "$sql_file" ]]; then
+    LAST_ERROR="missing sql file: $sql_file"
+    FAILED_STEP="preflight_check"
+    echo "[ERROR] $LAST_ERROR" >&2
+    exit 1
+  fi
+  echo "[INFO] apply: $(basename "$sql_file")"
+  cat "$sql_file" | docker exec -i "$DB_CONTAINER" psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$DB_NAME"
+}
 
 # Log initialization info
+FAILED_STEP="init"
 {
   echo "[INFO] Stage2C-1 replay start: $TS"
   echo "[INFO] db_container=$DB_CONTAINER db_user=$DB_USER db_name=$DB_NAME"
@@ -56,6 +105,7 @@ trap 'echo "[ERROR] Stage2C-1 replay failed" >&2' ERR
 } | tee "$LOG_INIT" >/dev/null
 
 # 1) Run Stage2B replay as baseline
+FAILED_STEP="stage2b_replay"
 (
   echo "[STEP] Stage2B replay baseline"
   bash "$STAGE2B"
@@ -63,6 +113,7 @@ trap 'echo "[ERROR] Stage2C-1 replay failed" >&2' ERR
 ) 2>&1 | tee -a "$LOG_INIT" >/dev/null
 
 # 2) Stage2C-1 apply (company scope RLS)
+FAILED_STEP="apply_rls"
 (
   echo "[STEP] apply company scope RLS"
   run_psql_in_container "$SQL_40"
@@ -70,6 +121,7 @@ trap 'echo "[ERROR] Stage2C-1 replay failed" >&2' ERR
 ) 2>&1 | tee "$LOG_APPLY" >/dev/null
 
 # 3) Stage2C-1 verify
+FAILED_STEP="verify_rls"
 (
   echo "[STEP] verify company scope RLS"
   run_psql_in_container "$SQL_99"
@@ -77,6 +129,7 @@ trap 'echo "[ERROR] Stage2C-1 replay failed" >&2' ERR
 ) 2>&1 | tee "$LOG_VERIFY" >/dev/null
 
 # 4) Parse verification results and generate summary
+FAILED_STEP="parse_results"
 STAGE2C_RESULT="PASS"
 CROSS_COMPANY_DENIED="PASS"
 SAME_COMPANY_ALLOWED="PASS"
@@ -109,20 +162,8 @@ if grep -Eq "service_role missing multi-company visibility" "$LOG_VERIFY"; then
   STAGE2C_RESULT="FAIL"
 fi
 
-# Generate summary
-cat > "$LOG_SUMMARY" <<SUM
-=== STAGE2C_REPLAY_SUMMARY ===
-timestamp_utc=$TS
-db_container=$DB_CONTAINER
-db_name=$DB_NAME
-ops_dir=$OPS_DIR
-stage2c_1=$STAGE2C_RESULT
-verify_cross_company_denied=$CROSS_COMPANY_DENIED
-verify_same_company_allowed=$SAME_COMPANY_ALLOWED
-run_dir=$RUN_DIR
-SUM
-
-# Display summary
+# Generate and display summary
+write_summary "$STAGE2C_RESULT" "" "$CROSS_COMPANY_DENIED" "$SAME_COMPANY_ALLOWED"
 cat "$LOG_SUMMARY"
 
 # Exit with error if verification failed

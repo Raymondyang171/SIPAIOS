@@ -33,9 +33,23 @@ Stage2C-1 replay finished
 每次執行會在 artifacts/replay/stage2c_1/<timestamp>/ 產生：
 
 - 01_init.log：初始化資訊 + Stage2B baseline 執行記錄
-- 02_apply.log：40_stage2c_company_scope_rls.sql 執行記錄
-- 03_verify.log：99_stage2c_verify_company_scope_rls.sql 執行記錄
-- 04_summary.txt：摘要（包含 stage2c_1、verify_cross_company_denied、verify_same_company_allowed 的 PASS/FAIL）
+- 02_apply.log：40_stage2c_company_scope_rls.sql 執行記錄（若該步驟執行到）
+- 03_verify.log：99_stage2c_verify_company_scope_rls.sql 執行記錄（若該步驟執行到）
+- 04_summary.txt：摘要（必定產生，無論成功或失敗）
+
+04_summary.txt 格式：
+
+成功時包含：
+- stage2c_1=PASS
+- verify_cross_company_denied=PASS
+- verify_same_company_allowed=PASS
+- timestamp_utc / db_container / db_name / ops_dir / run_dir
+
+失敗時包含：
+- stage2c_1=FAIL
+- error=<錯誤訊息>
+- failed_step=<失敗步驟（init / stage2b_replay / apply_rls / verify_rls / parse_results）>
+- timestamp_utc / db_container / db_name / ops_dir / run_dir
 
 查看最新執行結果：
 
