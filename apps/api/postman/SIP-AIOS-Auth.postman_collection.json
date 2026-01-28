@@ -1,0 +1,398 @@
+{
+  "info": {
+    "name": "SIP AIOS Auth API",
+    "description": "Authentication API for SIP AIOS - APP-01 Auth Skeleton",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('DB is connected', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.status).to.eql('ok');",
+              "    pm.expect(jsonData.db).to.eql('connected');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": ["{{base_url}}"],
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "Login - Valid Credentials",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has token', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('token');",
+              "    pm.expect(jsonData.token).to.be.a('string');",
+              "    pm.environment.set('auth_token', jsonData.token);",
+              "});",
+              "",
+              "pm.test('Response has user info', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.user).to.have.property('id');",
+              "    pm.expect(jsonData.user).to.have.property('email');",
+              "    pm.expect(jsonData.user.email).to.eql(pm.environment.get('test_email'));",
+              "});",
+              "",
+              "pm.test('Response has companies list', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.companies).to.be.an('array');",
+              "    pm.expect(jsonData.companies.length).to.be.at.least(1);",
+              "});",
+              "",
+              "pm.test('Response has current_company', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.current_company).to.have.property('company_id');",
+              "    pm.environment.set('current_company_id', jsonData.current_company.company_id);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"{{test_email}}\",\n    \"password\": \"{{test_password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/login",
+          "host": ["{{base_url}}"],
+          "path": ["login"]
+        }
+      }
+    },
+    {
+      "name": "Login - Invalid Password",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 401', function () {",
+              "    pm.response.to.have.status(401);",
+              "});",
+              "",
+              "pm.test('Error is AUTH_FAILED', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error).to.eql('AUTH_FAILED');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"{{test_email}}\",\n    \"password\": \"wrong-password\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/login",
+          "host": ["{{base_url}}"],
+          "path": ["login"]
+        }
+      }
+    },
+    {
+      "name": "Login - Missing Fields",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Error is VALIDATION_ERROR', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error).to.eql('VALIDATION_ERROR');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"{{test_email}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/login",
+          "host": ["{{base_url}}"],
+          "path": ["login"]
+        }
+      }
+    },
+    {
+      "name": "Login - Multi-Company User",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('User has multiple companies', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.companies.length).to.be.at.least(2);",
+              "    pm.environment.set('multi_user_token', jsonData.token);",
+              "    ",
+              "    // Store second company ID for switch-company test",
+              "    var secondCompany = jsonData.companies.find(c => c.company_id !== jsonData.current_company.company_id);",
+              "    if (secondCompany) {",
+              "        pm.environment.set('second_company_id', secondCompany.company_id);",
+              "    }",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"multi@demo.local\",\n    \"password\": \"{{test_password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/login",
+          "host": ["{{base_url}}"],
+          "path": ["login"]
+        }
+      }
+    },
+    {
+      "name": "Switch Company - Valid",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has new token', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('token');",
+              "    pm.expect(jsonData.token).to.not.eql(pm.environment.get('multi_user_token'));",
+              "});",
+              "",
+              "pm.test('Current company is switched', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.current_company.company_id).to.eql(pm.environment.get('second_company_id'));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{multi_user_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"company_id\": \"{{second_company_id}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/switch-company",
+          "host": ["{{base_url}}"],
+          "path": ["switch-company"]
+        }
+      }
+    },
+    {
+      "name": "Switch Company - No Membership",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 403', function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "",
+              "pm.test('Error is FORBIDDEN', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error).to.eql('FORBIDDEN');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"company_id\": \"aaaaaaaa-bbbb-cccc-dddd-eeeeeeee0002\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/switch-company",
+          "host": ["{{base_url}}"],
+          "path": ["switch-company"]
+        }
+      }
+    },
+    {
+      "name": "Switch Company - No Auth Header",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 401', function () {",
+              "    pm.response.to.have.status(401);",
+              "});",
+              "",
+              "pm.test('Error is AUTH_REQUIRED', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error).to.eql('AUTH_REQUIRED');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"company_id\": \"{{current_company_id}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/switch-company",
+          "host": ["{{base_url}}"],
+          "path": ["switch-company"]
+        }
+      }
+    },
+    {
+      "name": "Switch Company - Missing company_id",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Error is VALIDATION_ERROR', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error).to.eql('VALIDATION_ERROR');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": {
+          "raw": "{{base_url}}/switch-company",
+          "host": ["{{base_url}}"],
+          "path": ["switch-company"]
+        }
+      }
+    }
+  ]
+}
