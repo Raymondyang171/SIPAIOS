@@ -4,6 +4,21 @@
 
 APP-02 實作採購閉環：PO (Purchase Order) -> GRN (Goods Receipt Note) -> Inventory Balance 更新。
 
+## One-Click Gate (Recommended)
+
+從專案根目錄執行：
+
+```bash
+make gate-app-02
+```
+
+這個命令會自動完成：
+1. DB 重播 (Phase1 → Stage2B RBAC → Stage2C Company Scope)
+2. Seed 測試資料 (auth + purchase)
+3. Newman 回歸測試
+
+**Gate 行為**：所有步驟成功 → exit 0；任一失敗 → exit ≠ 0
+
 ## API Endpoints
 
 | Method | Path | Description |
@@ -14,52 +29,12 @@ APP-02 實作採購閉環：PO (Purchase Order) -> GRN (Goods Receipt Note) -> I
 
 ## Prerequisites
 
-1. **Database**: PostgreSQL 須運行中且已套用 schema
-2. **Seed Data**: 執行 seed scripts
+1. **Docker**: PostgreSQL container 須運行中
+2. **Node.js**: >= 18.0.0 (for newman via npx)
+3. **API Server**: 須在 `http://localhost:3000` 運行
 
 ```bash
-# 從 apps/api 目錄執行
-docker exec -i sipaios-postgres psql -U sipaios -d sipaios < seeds/001_auth_test_users.sql
-docker exec -i sipaios-postgres psql -U sipaios -d sipaios < seeds/002_purchase_test_data.sql
-```
-
-3. **API Server**: 啟動 API
-
-```bash
-cd apps/api
-npm start
-```
-
-## Replay / Reset
-
-完整重播步驟：
-
-```bash
-# 1. 重置資料庫 (從專案根目錄)
-make reset
-
-# 2. 套用 APP-02 seed
-docker exec -i sipaios-postgres psql -U sipaios -d sipaios < apps/api/seeds/002_purchase_test_data.sql
-
-# 3. 重啟 API
 cd apps/api && npm start
-```
-
-## Newman Test
-
-執行 Newman 回歸測試：
-
-```bash
-cd apps/api
-
-# 安裝 newman (如未安裝)
-npm install -g newman
-
-# 執行測試
-newman run postman/SIP-AIOS-Auth.postman_collection.json \
-  -e postman/SIP-AIOS-Local.postman_environment.json \
-  --reporters cli,json \
-  --reporter-json-export newman-results.json
 ```
 
 ## Expected Results
@@ -108,4 +83,11 @@ SELECT email, password_hash FROM sys_users WHERE email = 'admin@demo.local';
 ```
 確認 supplier/site/item 屬於正確的 company_id:
 SELECT id, company_id, code FROM suppliers;
+```
+
+### Gate 失敗時
+```
+查看詳細 log:
+ls -la artifacts/gate/app02/
+cat artifacts/gate/app02/<timestamp>/04_summary.txt
 ```

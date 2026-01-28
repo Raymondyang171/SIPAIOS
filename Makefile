@@ -1,15 +1,16 @@
 # SIP AIOS - Development Makefile
 # One-click commands for common DB operations
 
-.PHONY: reset restore replay verify help
+.PHONY: reset restore replay verify help gate-app-02
 
 # Default target
 help:
 	@echo "SIP AIOS Development Commands:"
-	@echo "  make reset   - Full reset: restore baseline + seed + verify (< 30s target)"
-	@echo "  make restore - Restore Phase1 baseline only (destructive)"
-	@echo "  make replay  - Alias for reset"
-	@echo "  make verify  - Run Phase1 verify only"
+	@echo "  make reset       - Full reset: restore baseline + seed + verify (< 30s target)"
+	@echo "  make restore     - Restore Phase1 baseline only (destructive)"
+	@echo "  make replay      - Alias for reset"
+	@echo "  make verify      - Run Phase1 verify only"
+	@echo "  make gate-app-02 - APP-02 Gate: DB replay + seed + Newman (exit 0 = pass)"
 	@echo ""
 	@echo "Configuration (override via env):"
 	@echo "  DB_CONTAINER  (default: sipaios-postgres)"
@@ -36,3 +37,8 @@ verify:
 		-U $${DB_USER:-sipaios} -d $${DB_NAME:-sipaios} \
 		-v ON_ERROR_STOP=1 \
 		-f - < phase1_schema_v1.1_sql/supabase/ops/*_99_phase1_verify.sql
+
+# APP-02 Gate: one-click DB replay + seed + Newman
+gate-app-02:
+	@echo "=== make gate-app-02: APP-02 Purchase Loop Gate ==="
+	@./scripts/gate_app02.sh

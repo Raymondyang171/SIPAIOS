@@ -34,9 +34,9 @@ ON CONFLICT (id) DO UPDATE SET code = EXCLUDED.code, name = EXCLUDED.name;
 -- Password: Test@123 (bcrypt hash with cost 10)
 INSERT INTO public.sys_users (id, email, display_name, password_hash)
 VALUES
-  ('11111111-1111-1111-1111-111111111111', 'admin@demo.local', 'Demo Admin', '$2b$10$rQZ8K5X3K5X3K5X3K5X3Ku3X3K5X3K5X3K5X3K5X3K5X3K5X3K5O'),
-  ('22222222-2222-2222-2222-222222222222', 'user@demo.local', 'Demo User', '$2b$10$rQZ8K5X3K5X3K5X3K5X3Ku3X3K5X3K5X3K5X3K5X3K5X3K5X3K5O'),
-  ('33333333-3333-3333-3333-333333333333', 'multi@demo.local', 'Multi-Company User', '$2b$10$rQZ8K5X3K5X3K5X3K5X3Ku3X3K5X3K5X3K5X3K5X3K5X3K5X3K5O')
+  ('11111111-1111-1111-1111-111111111111', 'admin@demo.local', 'Demo Admin', '$2b$10$MzmQ4WYwTCgeqdSne.lwCuty3rC78AJ9pJtM1YPr7QlXK8haqL5Ia'),
+  ('22222222-2222-2222-2222-222222222222', 'user@demo.local', 'Demo User', '$2b$10$MzmQ4WYwTCgeqdSne.lwCuty3rC78AJ9pJtM1YPr7QlXK8haqL5Ia'),
+  ('33333333-3333-3333-3333-333333333333', 'multi@demo.local', 'Multi-Company User', '$2b$10$MzmQ4WYwTCgeqdSne.lwCuty3rC78AJ9pJtM1YPr7QlXK8haqL5Ia')
 ON CONFLICT (id) DO UPDATE SET
   email = EXCLUDED.email,
   display_name = EXCLUDED.display_name,
