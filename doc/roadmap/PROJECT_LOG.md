@@ -1,3 +1,52 @@
+Title：13 SVC-W3-1 Gate Portability（Newman 本地依賴化）
+Date：2026-01-29
+Stage：Pilot
+Phase：P2
+Status：Done
+Scope Impact：Ops / Docs
+Related SVC：SVC-W3-1
+Next Owner：You / Claude(VSCode)
+Tags（可選）：gate, newman, portability, npm, devDependencies, make
+
+1. 結論（已定案）
+
+* Gate 可攜性加固完成：`newman@^6.2.1` 已加入 `apps/api/devDependencies`
+* Gate 腳本改為專案依賴驅動：`npm --prefix apps/api run test:newman`（不再依賴全域 newman）
+* 驗證通過：`npm ci --prefix apps/api` + `make gate-app-02` → PASS (14 requests, 35 assertions, 0 failed)
+
+2. 本次確定方案邊界取捨
+
+* 嚴守白名單（≤5 檔）：`apps/api/package.json`, `apps/api/package-lock.json`, `scripts/gate_app02.sh`, `doc/runbooks/APP-02-PURCHASE-LOOP.md`
+* Makefile 不需修改（原本已只呼叫 `./scripts/gate_app02.sh`）
+* `test:newman` script 改用 `newman`（非 `npx newman`），因為 newman 已是本地依賴
+
+3. 未決事項
+
+* `npm audit` 顯示 12 vulnerabilities (5 moderate, 7 high)，待評估是否需要 `npm audit fix`
+
+4. 下一步（1–3 個最小動作）
+
+* 提交 SVC-W3-1 commit（Gate portability）
+* 執行 SVC-W3-2：同步更新 PROJECT_LOG / ROADMAP 文件治理
+* 回滾方式：`git revert <SVC commit>`
+
+5. 驗收錨點（可觀測結果）
+
+* `npm ci --prefix apps/api` → 276 packages installed, 0 errors
+* `make gate-app-02` → `[GATE PASS]` (newman_gate=PASS, gate_result=PASS)
+* Gate 在乾淨環境（刪除 node_modules 後重裝）仍可通過
+
+6. 風險與防線 / 變更紀錄
+
+* 風險：newman 版本漂移導致測試行為不一致
+  * 防線：`package-lock.json` 鎖定版本；CI 環境使用 `npm ci`
+* 變更紀錄
+  * 修改：`apps/api/package.json` 新增 `devDependencies.newman`
+  * 修改：`apps/api/package-lock.json` 新增 120 packages
+  * 修改：`scripts/gate_app02.sh` 改用 `npm --prefix` 執行
+  * 修改：`doc/runbooks/APP-02-PURCHASE-LOOP.md` 更新 Prerequisites
+
+
 
 Title：12 APP-01 INFRA-01處理方案:12 SVC-APP-02 Purchase Loop（PO → GRN → Inventory）Newman Gate 打通 + Tag 固化
 Date：2026-01-29

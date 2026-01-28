@@ -15,8 +15,6 @@ API_BASE_URL="${API_BASE_URL:-http://localhost:3000}"
 STAGE2C="${ROOT_DIR}/scripts/db/02_replay_stage2c_company_scope_v1_0.sh"
 SEED_AUTH="${ROOT_DIR}/apps/api/seeds/001_auth_test_users.sql"
 SEED_PURCHASE="${ROOT_DIR}/apps/api/seeds/002_purchase_test_data.sql"
-POSTMAN_COLLECTION="${ROOT_DIR}/apps/api/postman/SIP-AIOS-Auth.postman_collection.json"
-POSTMAN_ENV="${ROOT_DIR}/apps/api/postman/SIP-AIOS-Local.postman_environment.json"
 
 timestamp_now() {
   date -u +"%Y%m%dT%H%M%SZ"
@@ -80,20 +78,17 @@ if ! touch "$LOG_NEWMAN" 2>/dev/null; then
   exit 1
 fi
 
-# Check newman availability
-if ! command -v npx &> /dev/null; then
-  die "npx not found. Please install Node.js"
+# Check npm availability
+if ! command -v npm &> /dev/null; then
+  die "npm not found. Please install Node.js"
 fi
 
 NEWMAN_RESULT_JSON="$RUN_DIR/newman-results.json"
 
-cd "$ROOT_DIR/apps/api"
-
-# Run newman with direct redirection (avoid pipefail from tee)
+# Run newman via npm script (uses local dependency, not global)
 # stdout/stderr go to log file; use tee only for console echo after
 set +e
-npx newman run "$POSTMAN_COLLECTION" \
-  -e "$POSTMAN_ENV" \
+npm --prefix "$ROOT_DIR/apps/api" run test:newman -- \
   --reporters cli,json \
   --reporter-json-export "$NEWMAN_RESULT_JSON" \
   > "$LOG_NEWMAN" 2>&1
@@ -102,8 +97,6 @@ set -e
 
 # Show newman output to console
 cat "$LOG_NEWMAN"
-
-cd "$ROOT_DIR"
 
 # Verify artifacts were written
 if [[ ! -f "$LOG_NEWMAN" ]]; then

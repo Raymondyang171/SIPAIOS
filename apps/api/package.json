@@ -9,7 +9,10 @@
     "dev": "node --watch src/index.js",
     "migrate": "node scripts/migrate.js",
     "seed": "node scripts/seed.js",
-    "test:newman": "npx newman run postman/SIP-AIOS-Auth.postman_collection.json -e postman/SIP-AIOS-Local.postman_environment.json"
+    "test:newman": "newman run postman/SIP-AIOS-Auth.postman_collection.json -e postman/SIP-AIOS-Local.postman_environment.json"
+  },
+  "devDependencies": {
+    "newman": "^6.2.1"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

@@ -2,13 +2,44 @@
 
 > **STATUS DASHBOARD (2026-01-29)**
 > * **Current Stage**: Pilot (Phase 2)
-> * **Latest Action**: [Entry 12] SVC-APP-02 Purchase Loop (PO→GRN) Newman PASS.
-> * **Current Blocker**: None. (Infra Restore Chain verified in Entry 12).
-> * **Immediate Next**: Switch GitHub default branch to `main` & Merge Stage 2C.
+> * **Latest Action**: [Entry 13] SVC-W3-1 Gate Portability — Newman 本地依賴化完成.
+> * **Current Blocker**: None.
+> * **Immediate Next**: SVC-W3-2 文件治理（本次 commit 同步）.
 
 ---
 
 ## I. Active Context (Latest 3 Entries)
+
+### [13] SVC-W3-1 Gate Portability (Newman 本地依賴化)
+* **Date**: 2026-01-29 | **Phase**: P2 (Pilot) | **Status**: Done
+* **Context**: 消除 Gate 對全域 newman 的依賴，改為專案依賴驅動（npm script / local install）。
+* **Tags**: gate, newman, portability, npm, devDependencies
+
+1. **結論 (Conclusions)**
+   * **Newman 本地化完成**: `newman@^6.2.1` 已加入 `apps/api/devDependencies`。
+   * **Gate 腳本更新**: `scripts/gate_app02.sh` 改用 `npm --prefix apps/api run test:newman`。
+   * **驗證通過**: `npm ci --prefix apps/api` + `make gate-app-02` → PASS (14 requests, 35 assertions, 0 failed)。
+
+2. **邊界取捨 (Trade-offs)**
+   * **Scope**: 嚴守白名單（≤5 檔）：`package.json`, `package-lock.json`, `gate_app02.sh`, `APP-02-PURCHASE-LOOP.md`。
+   * **Makefile**: 不需修改（原本已只呼叫 `./scripts/gate_app02.sh`）。
+
+3. **未決事項 (Pending)**
+   * `npm audit` 顯示 12 vulnerabilities (5 moderate, 7 high)，待評估是否需要 fix。
+
+4. **下一步 (Next Steps)**
+   * **Commit**: 提交 SVC-W3-1 變更。
+   * **SVC-W3-2**: 同步更新 PROJECT_LOG / ROADMAP 文件治理。
+
+5. **驗收錨點 (Anchors)**
+   * `npm ci --prefix apps/api` → 276 packages installed。
+   * `make gate-app-02` → `[GATE PASS]` (newman_gate=PASS, gate_result=PASS)。
+
+6. **風險與變更 (Risks & Logs)**
+   * **Risk**: newman 版本漂移導致測試行為不一致 → **Def**: `package-lock.json` 鎖定版本。
+   * **Change**: 新增 `devDependencies`；`test:newman` 改用 `newman`（非 `npx newman`）；runbook 更新 Prerequisites。
+
+---
 
 ### [12] SVC-APP-02 Purchase Loop (PO → GRN) & Infra Gate
 * **Date**: 2026-01-29 | **Phase**: P2 (Pilot) | **Status**: Done

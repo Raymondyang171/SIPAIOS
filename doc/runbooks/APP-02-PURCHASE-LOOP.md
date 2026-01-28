@@ -30,12 +30,15 @@ make gate-app-02
 ## Prerequisites
 
 1. **Docker**: PostgreSQL container 須運行中
-2. **Node.js**: >= 18.0.0 (for newman via npx)
-3. **API Server**: 須在 `http://localhost:3000` 運行
-
-```bash
-cd apps/api && npm start
-```
+2. **Node.js**: >= 18.0.0
+3. **Dependencies**: 安裝專案依賴（newman 已納入 devDependencies）
+   ```bash
+   npm ci --prefix apps/api
+   ```
+4. **API Server**: 須在 `http://localhost:3000` 運行
+   ```bash
+   cd apps/api && npm start
+   ```
 
 ## Expected Results
 
