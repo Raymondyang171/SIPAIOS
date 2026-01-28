@@ -46,3 +46,5 @@ phase1_step1_*.zip
 artifacts/
 
 *:Zone.Identifier
+# local patch backups
+*.bak.*
