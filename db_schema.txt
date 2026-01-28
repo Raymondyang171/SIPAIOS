@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict NbT3cZxOxUPcXJYVMk4drtXLzqvoWwdMN52npSMBaxTBCQgLslaPw4Cp0npl5xd
+\restrict Vdf7omoBwrTttNni4Mtxr2XOuuVvOmTOb85I80gaylbFfCb6fcybMeFQYbWvahG
 
 -- Dumped from database version 16.11
 -- Dumped by pg_dump version 16.11
@@ -19,21 +19,69 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Name: public; Type: SCHEMA; Schema: -; Owner: -
+-- Name: app; Type: SCHEMA; Schema: -; Owner: sipaios
 --
 
-CREATE SCHEMA public;
+CREATE SCHEMA app;
+
+
+ALTER SCHEMA app OWNER TO sipaios;
+
+--
+-- Name: auth; Type: SCHEMA; Schema: -; Owner: sipaios
+--
+
+CREATE SCHEMA auth;
+
+
+ALTER SCHEMA auth OWNER TO sipaios;
+
+--
+-- Name: public; Type: SCHEMA; Schema: -; Owner: sipaios
+--
+
+-- *not* creating schema, since initdb creates it
+
+
+ALTER SCHEMA public OWNER TO sipaios;
+
+--
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: sipaios
+--
+
+COMMENT ON SCHEMA public IS '';
 
 
 --
--- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: -
+-- Name: pgcrypto; Type: EXTENSION; Schema: -; Owner: -
 --
 
-COMMENT ON SCHEMA public IS 'standard public schema';
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
 
 
 --
--- Name: backflush_status; Type: TYPE; Schema: public; Owner: -
+-- Name: EXTENSION pgcrypto; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION pgcrypto IS 'cryptographic functions';
+
+
+--
+-- Name: uuid-ossp; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
+
+
+--
+-- Name: EXTENSION "uuid-ossp"; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UUIDs)';
+
+
+--
+-- Name: backflush_status; Type: TYPE; Schema: public; Owner: sipaios
 --
 
 CREATE TYPE public.backflush_status AS ENUM (
@@ -43,8 +91,10 @@ CREATE TYPE public.backflush_status AS ENUM (
 );
 
 
+ALTER TYPE public.backflush_status OWNER TO sipaios;
+
 --
--- Name: bom_status; Type: TYPE; Schema: public; Owner: -
+-- Name: bom_status; Type: TYPE; Schema: public; Owner: sipaios
 --
 
 CREATE TYPE public.bom_status AS ENUM (
@@ -54,8 +104,10 @@ CREATE TYPE public.bom_status AS ENUM (
 );
 
 
+ALTER TYPE public.bom_status OWNER TO sipaios;
+
 --
--- Name: goods_receipt_status; Type: TYPE; Schema: public; Owner: -
+-- Name: goods_receipt_status; Type: TYPE; Schema: public; Owner: sipaios
 --
 
 CREATE TYPE public.goods_receipt_status AS ENUM (
@@ -68,8 +120,10 @@ CREATE TYPE public.goods_receipt_status AS ENUM (
 );
 
 
+ALTER TYPE public.goods_receipt_status OWNER TO sipaios;
+
 --
--- Name: inventory_move_type; Type: TYPE; Schema: public; Owner: -
+-- Name: inventory_move_type; Type: TYPE; Schema: public; Owner: sipaios
 --
 
 CREATE TYPE public.inventory_move_type AS ENUM (
@@ -83,8 +137,10 @@ CREATE TYPE public.inventory_move_type AS ENUM (
 );
 
 
+ALTER TYPE public.inventory_move_type OWNER TO sipaios;
+
 --
--- Name: iqc_status; Type: TYPE; Schema: public; Owner: -
+-- Name: iqc_status; Type: TYPE; Schema: public; Owner: sipaios
 --
 
 CREATE TYPE public.iqc_status AS ENUM (
@@ -95,8 +151,10 @@ CREATE TYPE public.iqc_status AS ENUM (
 );
 
 
+ALTER TYPE public.iqc_status OWNER TO sipaios;
+
 --
--- Name: item_type; Type: TYPE; Schema: public; Owner: -
+-- Name: item_type; Type: TYPE; Schema: public; Owner: sipaios
 --
 
 CREATE TYPE public.item_type AS ENUM (
@@ -107,8 +165,10 @@ CREATE TYPE public.item_type AS ENUM (
 );
 
 
+ALTER TYPE public.item_type OWNER TO sipaios;
+
 --
--- Name: lot_tracking_mode; Type: TYPE; Schema: public; Owner: -
+-- Name: lot_tracking_mode; Type: TYPE; Schema: public; Owner: sipaios
 --
 
 CREATE TYPE public.lot_tracking_mode AS ENUM (
@@ -118,8 +178,10 @@ CREATE TYPE public.lot_tracking_mode AS ENUM (
 );
 
 
+ALTER TYPE public.lot_tracking_mode OWNER TO sipaios;
+
 --
--- Name: purchase_order_status; Type: TYPE; Schema: public; Owner: -
+-- Name: purchase_order_status; Type: TYPE; Schema: public; Owner: sipaios
 --
 
 CREATE TYPE public.purchase_order_status AS ENUM (
@@ -131,8 +193,10 @@ CREATE TYPE public.purchase_order_status AS ENUM (
 );
 
 
+ALTER TYPE public.purchase_order_status OWNER TO sipaios;
+
 --
--- Name: sales_order_status; Type: TYPE; Schema: public; Owner: -
+-- Name: sales_order_status; Type: TYPE; Schema: public; Owner: sipaios
 --
 
 CREATE TYPE public.sales_order_status AS ENUM (
@@ -145,8 +209,10 @@ CREATE TYPE public.sales_order_status AS ENUM (
 );
 
 
+ALTER TYPE public.sales_order_status OWNER TO sipaios;
+
 --
--- Name: schedule_status; Type: TYPE; Schema: public; Owner: -
+-- Name: schedule_status; Type: TYPE; Schema: public; Owner: sipaios
 --
 
 CREATE TYPE public.schedule_status AS ENUM (
@@ -157,8 +223,10 @@ CREATE TYPE public.schedule_status AS ENUM (
 );
 
 
+ALTER TYPE public.schedule_status OWNER TO sipaios;
+
 --
--- Name: warehouse_category; Type: TYPE; Schema: public; Owner: -
+-- Name: warehouse_category; Type: TYPE; Schema: public; Owner: sipaios
 --
 
 CREATE TYPE public.warehouse_category AS ENUM (
@@ -170,8 +238,10 @@ CREATE TYPE public.warehouse_category AS ENUM (
 );
 
 
+ALTER TYPE public.warehouse_category OWNER TO sipaios;
+
 --
--- Name: work_order_event_type; Type: TYPE; Schema: public; Owner: -
+-- Name: work_order_event_type; Type: TYPE; Schema: public; Owner: sipaios
 --
 
 CREATE TYPE public.work_order_event_type AS ENUM (
@@ -190,8 +260,10 @@ CREATE TYPE public.work_order_event_type AS ENUM (
 );
 
 
+ALTER TYPE public.work_order_event_type OWNER TO sipaios;
+
 --
--- Name: work_order_status; Type: TYPE; Schema: public; Owner: -
+-- Name: work_order_status; Type: TYPE; Schema: public; Owner: sipaios
 --
 
 CREATE TYPE public.work_order_status AS ENUM (
@@ -203,8 +275,103 @@ CREATE TYPE public.work_order_status AS ENUM (
 );
 
 
+ALTER TYPE public.work_order_status OWNER TO sipaios;
+
 --
--- Name: has_permission(uuid, uuid, text); Type: FUNCTION; Schema: public; Owner: -
+-- Name: current_user_id(); Type: FUNCTION; Schema: app; Owner: sipaios
+--
+
+CREATE FUNCTION app.current_user_id() RETURNS uuid
+    LANGUAGE sql STABLE
+    AS $$
+  select auth.uid();
+$$;
+
+
+ALTER FUNCTION app.current_user_id() OWNER TO sipaios;
+
+--
+-- Name: has_permission(text); Type: FUNCTION; Schema: app; Owner: sipaios
+--
+
+CREATE FUNCTION app.has_permission(p_key text) RETURNS boolean
+    LANGUAGE sql STABLE
+    AS $$
+  select exists (
+    select 1
+    from public.sys_memberships m
+    join public.sys_roles r on r.id = m.role_id
+    join public.sys_role_permissions rp on rp.role_id = r.id
+    join public.sys_permissions p on p.id = rp.permission_id
+    where m.user_id = app.current_user_id()
+      and m.status = 'active'
+      and p.key = p_key
+  );
+$$;
+
+
+ALTER FUNCTION app.has_permission(p_key text) OWNER TO sipaios;
+
+--
+-- Name: is_member_of_tenant(uuid); Type: FUNCTION; Schema: app; Owner: sipaios
+--
+
+CREATE FUNCTION app.is_member_of_tenant(tid uuid) RETURNS boolean
+    LANGUAGE sql STABLE
+    AS $$
+  select exists (
+    select 1
+    from public.sys_memberships m
+    where m.user_id = app.current_user_id()
+      and m.tenant_id = tid
+      and m.status = 'active'
+  );
+$$;
+
+
+ALTER FUNCTION app.is_member_of_tenant(tid uuid) OWNER TO sipaios;
+
+--
+-- Name: uid(); Type: FUNCTION; Schema: auth; Owner: sipaios
+--
+
+CREATE FUNCTION auth.uid() RETURNS uuid
+    LANGUAGE plpgsql STABLE
+    AS $_$
+DECLARE
+  raw text;
+  js jsonb;
+  sub text;
+BEGIN
+  raw := NULLIF(current_setting('request.jwt.claims', true), '');
+  IF raw IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  BEGIN
+    js := raw::jsonb;
+  EXCEPTION WHEN others THEN
+    RETURN NULL;
+  END;
+
+  sub := js->>'sub';
+  IF sub IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  IF sub ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN
+    RETURN sub::uuid;
+  END IF;
+
+  RETURN NULL;
+END;
+$_$;
+
+
+ALTER FUNCTION auth.uid() OWNER TO sipaios;
+
+--
+-- Name: has_permission(uuid, uuid, text); Type: FUNCTION; Schema: public; Owner: sipaios
 --
 
 CREATE FUNCTION public.has_permission(p_tenant_id uuid, p_user_id uuid, p_permission_key text) RETURNS boolean
@@ -279,8 +446,10 @@ END;
 $_$;
 
 
+ALTER FUNCTION public.has_permission(p_tenant_id uuid, p_user_id uuid, p_permission_key text) OWNER TO sipaios;
+
 --
--- Name: is_tenant_admin(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+-- Name: is_tenant_admin(uuid, uuid); Type: FUNCTION; Schema: public; Owner: sipaios
 --
 
 CREATE FUNCTION public.is_tenant_admin(p_tenant_id uuid, p_user_id uuid) RETURNS boolean
@@ -319,8 +488,10 @@ END;
 $_$;
 
 
+ALTER FUNCTION public.is_tenant_admin(p_tenant_id uuid, p_user_id uuid) OWNER TO sipaios;
+
 --
--- Name: is_tenant_member(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+-- Name: is_tenant_member(uuid, uuid); Type: FUNCTION; Schema: public; Owner: sipaios
 --
 
 CREATE FUNCTION public.is_tenant_member(p_tenant_id uuid, p_user_id uuid) RETURNS boolean
@@ -335,12 +506,14 @@ CREATE FUNCTION public.is_tenant_member(p_tenant_id uuid, p_user_id uuid) RETURN
 $$;
 
 
+ALTER FUNCTION public.is_tenant_member(p_tenant_id uuid, p_user_id uuid) OWNER TO sipaios;
+
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
 
 --
--- Name: audit_events; Type: TABLE; Schema: public; Owner: -
+-- Name: audit_events; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.audit_events (
@@ -359,8 +532,10 @@ CREATE TABLE public.audit_events (
 );
 
 
+ALTER TABLE public.audit_events OWNER TO sipaios;
+
 --
--- Name: backflush_allocations; Type: TABLE; Schema: public; Owner: -
+-- Name: backflush_allocations; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.backflush_allocations (
@@ -375,8 +550,10 @@ CREATE TABLE public.backflush_allocations (
 );
 
 
+ALTER TABLE public.backflush_allocations OWNER TO sipaios;
+
 --
--- Name: backflush_runs; Type: TABLE; Schema: public; Owner: -
+-- Name: backflush_runs; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.backflush_runs (
@@ -392,8 +569,10 @@ CREATE TABLE public.backflush_runs (
 );
 
 
+ALTER TABLE public.backflush_runs OWNER TO sipaios;
+
 --
--- Name: bom_headers; Type: TABLE; Schema: public; Owner: -
+-- Name: bom_headers; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.bom_headers (
@@ -405,8 +584,10 @@ CREATE TABLE public.bom_headers (
 );
 
 
+ALTER TABLE public.bom_headers OWNER TO sipaios;
+
 --
--- Name: bom_lines; Type: TABLE; Schema: public; Owner: -
+-- Name: bom_lines; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.bom_lines (
@@ -424,8 +605,10 @@ CREATE TABLE public.bom_lines (
 );
 
 
+ALTER TABLE public.bom_lines OWNER TO sipaios;
+
 --
--- Name: bom_versions; Type: TABLE; Schema: public; Owner: -
+-- Name: bom_versions; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.bom_versions (
@@ -439,8 +622,10 @@ CREATE TABLE public.bom_versions (
 );
 
 
+ALTER TABLE public.bom_versions OWNER TO sipaios;
+
 --
--- Name: companies; Type: TABLE; Schema: public; Owner: -
+-- Name: companies; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.companies (
@@ -451,8 +636,10 @@ CREATE TABLE public.companies (
 );
 
 
+ALTER TABLE public.companies OWNER TO sipaios;
+
 --
--- Name: customers; Type: TABLE; Schema: public; Owner: -
+-- Name: customers; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.customers (
@@ -464,8 +651,10 @@ CREATE TABLE public.customers (
 );
 
 
+ALTER TABLE public.customers OWNER TO sipaios;
+
 --
--- Name: goods_receipt_lines; Type: TABLE; Schema: public; Owner: -
+-- Name: goods_receipt_lines; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.goods_receipt_lines (
@@ -484,8 +673,10 @@ CREATE TABLE public.goods_receipt_lines (
 );
 
 
+ALTER TABLE public.goods_receipt_lines OWNER TO sipaios;
+
 --
--- Name: goods_receipts; Type: TABLE; Schema: public; Owner: -
+-- Name: goods_receipts; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.goods_receipts (
@@ -505,8 +696,10 @@ CREATE TABLE public.goods_receipts (
 );
 
 
+ALTER TABLE public.goods_receipts OWNER TO sipaios;
+
 --
--- Name: inventory_balances; Type: TABLE; Schema: public; Owner: -
+-- Name: inventory_balances; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.inventory_balances (
@@ -522,8 +715,10 @@ CREATE TABLE public.inventory_balances (
 );
 
 
+ALTER TABLE public.inventory_balances OWNER TO sipaios;
+
 --
--- Name: inventory_lots; Type: TABLE; Schema: public; Owner: -
+-- Name: inventory_lots; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.inventory_lots (
@@ -541,8 +736,10 @@ CREATE TABLE public.inventory_lots (
 );
 
 
+ALTER TABLE public.inventory_lots OWNER TO sipaios;
+
 --
--- Name: inventory_move_lines; Type: TABLE; Schema: public; Owner: -
+-- Name: inventory_move_lines; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.inventory_move_lines (
@@ -560,8 +757,10 @@ CREATE TABLE public.inventory_move_lines (
 );
 
 
+ALTER TABLE public.inventory_move_lines OWNER TO sipaios;
+
 --
--- Name: inventory_moves; Type: TABLE; Schema: public; Owner: -
+-- Name: inventory_moves; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.inventory_moves (
@@ -580,8 +779,10 @@ CREATE TABLE public.inventory_moves (
 );
 
 
+ALTER TABLE public.inventory_moves OWNER TO sipaios;
+
 --
--- Name: iqc_records; Type: TABLE; Schema: public; Owner: -
+-- Name: iqc_records; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.iqc_records (
@@ -596,8 +797,10 @@ CREATE TABLE public.iqc_records (
 );
 
 
+ALTER TABLE public.iqc_records OWNER TO sipaios;
+
 --
--- Name: item_cycle_time_versions; Type: TABLE; Schema: public; Owner: -
+-- Name: item_cycle_time_versions; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.item_cycle_time_versions (
@@ -614,8 +817,10 @@ CREATE TABLE public.item_cycle_time_versions (
 );
 
 
+ALTER TABLE public.item_cycle_time_versions OWNER TO sipaios;
+
 --
--- Name: item_uom_conversions; Type: TABLE; Schema: public; Owner: -
+-- Name: item_uom_conversions; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.item_uom_conversions (
@@ -631,8 +836,10 @@ CREATE TABLE public.item_uom_conversions (
 );
 
 
+ALTER TABLE public.item_uom_conversions OWNER TO sipaios;
+
 --
--- Name: items; Type: TABLE; Schema: public; Owner: -
+-- Name: items; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.items (
@@ -651,8 +858,10 @@ CREATE TABLE public.items (
 );
 
 
+ALTER TABLE public.items OWNER TO sipaios;
+
 --
--- Name: lot_uom_conversions; Type: TABLE; Schema: public; Owner: -
+-- Name: lot_uom_conversions; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.lot_uom_conversions (
@@ -667,8 +876,10 @@ CREATE TABLE public.lot_uom_conversions (
 );
 
 
+ALTER TABLE public.lot_uom_conversions OWNER TO sipaios;
+
 --
--- Name: production_lots; Type: TABLE; Schema: public; Owner: -
+-- Name: production_lots; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.production_lots (
@@ -686,8 +897,10 @@ CREATE TABLE public.production_lots (
 );
 
 
+ALTER TABLE public.production_lots OWNER TO sipaios;
+
 --
--- Name: production_schedules; Type: TABLE; Schema: public; Owner: -
+-- Name: production_schedules; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.production_schedules (
@@ -706,8 +919,10 @@ CREATE TABLE public.production_schedules (
 );
 
 
+ALTER TABLE public.production_schedules OWNER TO sipaios;
+
 --
--- Name: purchase_order_lines; Type: TABLE; Schema: public; Owner: -
+-- Name: purchase_order_lines; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.purchase_order_lines (
@@ -726,8 +941,10 @@ CREATE TABLE public.purchase_order_lines (
 );
 
 
+ALTER TABLE public.purchase_order_lines OWNER TO sipaios;
+
 --
--- Name: purchase_orders; Type: TABLE; Schema: public; Owner: -
+-- Name: purchase_orders; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.purchase_orders (
@@ -746,8 +963,10 @@ CREATE TABLE public.purchase_orders (
 );
 
 
+ALTER TABLE public.purchase_orders OWNER TO sipaios;
+
 --
--- Name: reason_codes; Type: TABLE; Schema: public; Owner: -
+-- Name: reason_codes; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.reason_codes (
@@ -760,8 +979,10 @@ CREATE TABLE public.reason_codes (
 );
 
 
+ALTER TABLE public.reason_codes OWNER TO sipaios;
+
 --
--- Name: sales_order_lines; Type: TABLE; Schema: public; Owner: -
+-- Name: sales_order_lines; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.sales_order_lines (
@@ -778,8 +999,10 @@ CREATE TABLE public.sales_order_lines (
 );
 
 
+ALTER TABLE public.sales_order_lines OWNER TO sipaios;
+
 --
--- Name: sales_orders; Type: TABLE; Schema: public; Owner: -
+-- Name: sales_orders; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.sales_orders (
@@ -798,8 +1021,10 @@ CREATE TABLE public.sales_orders (
 );
 
 
+ALTER TABLE public.sales_orders OWNER TO sipaios;
+
 --
--- Name: shipment_lines; Type: TABLE; Schema: public; Owner: -
+-- Name: shipment_lines; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.shipment_lines (
@@ -818,8 +1043,10 @@ CREATE TABLE public.shipment_lines (
 );
 
 
+ALTER TABLE public.shipment_lines OWNER TO sipaios;
+
 --
--- Name: shipments; Type: TABLE; Schema: public; Owner: -
+-- Name: shipments; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.shipments (
@@ -837,8 +1064,10 @@ CREATE TABLE public.shipments (
 );
 
 
+ALTER TABLE public.shipments OWNER TO sipaios;
+
 --
--- Name: sites; Type: TABLE; Schema: public; Owner: -
+-- Name: sites; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.sites (
@@ -850,8 +1079,10 @@ CREATE TABLE public.sites (
 );
 
 
+ALTER TABLE public.sites OWNER TO sipaios;
+
 --
--- Name: suppliers; Type: TABLE; Schema: public; Owner: -
+-- Name: suppliers; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.suppliers (
@@ -863,8 +1094,10 @@ CREATE TABLE public.suppliers (
 );
 
 
+ALTER TABLE public.suppliers OWNER TO sipaios;
+
 --
--- Name: sys_idempotency_keys; Type: TABLE; Schema: public; Owner: -
+-- Name: sys_idempotency_keys; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.sys_idempotency_keys (
@@ -885,59 +1118,64 @@ CREATE TABLE public.sys_idempotency_keys (
 );
 
 
+ALTER TABLE public.sys_idempotency_keys OWNER TO sipaios;
+
 --
--- Name: sys_memberships; Type: TABLE; Schema: public; Owner: -
+-- Name: sys_memberships; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.sys_memberships (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
     user_id uuid NOT NULL,
-    role_id uuid NOT NULL,
-    status text DEFAULT 'active'::text NOT NULL,
+    role_id uuid,
+    is_tenant_admin boolean DEFAULT false NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
+ALTER TABLE public.sys_memberships OWNER TO sipaios;
+
 --
--- Name: sys_permissions; Type: TABLE; Schema: public; Owner: -
+-- Name: sys_permissions; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.sys_permissions (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
     key text NOT NULL,
-    description text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    description text
 );
 
 
+ALTER TABLE public.sys_permissions OWNER TO sipaios;
+
 --
--- Name: sys_role_permissions; Type: TABLE; Schema: public; Owner: -
+-- Name: sys_role_permissions; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.sys_role_permissions (
     role_id uuid NOT NULL,
-    permission_id uuid NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    permission_key text NOT NULL
 );
 
 
+ALTER TABLE public.sys_role_permissions OWNER TO sipaios;
+
 --
--- Name: sys_roles; Type: TABLE; Schema: public; Owner: -
+-- Name: sys_roles; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.sys_roles (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    key text NOT NULL,
     name text NOT NULL,
-    is_system boolean DEFAULT false NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
+ALTER TABLE public.sys_roles OWNER TO sipaios;
+
 --
--- Name: sys_schema_version; Type: TABLE; Schema: public; Owner: -
+-- Name: sys_schema_version; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.sys_schema_version (
@@ -951,21 +1189,24 @@ CREATE TABLE public.sys_schema_version (
 );
 
 
+ALTER TABLE public.sys_schema_version OWNER TO sipaios;
+
 --
--- Name: sys_tenants; Type: TABLE; Schema: public; Owner: -
+-- Name: sys_tenants; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.sys_tenants (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    code text NOT NULL,
+    slug text NOT NULL,
     name text NOT NULL,
-    status text DEFAULT 'active'::text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
+ALTER TABLE public.sys_tenants OWNER TO sipaios;
+
 --
--- Name: sys_users; Type: TABLE; Schema: public; Owner: -
+-- Name: sys_users; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.sys_users (
@@ -976,20 +1217,25 @@ CREATE TABLE public.sys_users (
 );
 
 
+ALTER TABLE public.sys_users OWNER TO sipaios;
+
 --
--- Name: uoms; Type: TABLE; Schema: public; Owner: -
+-- Name: uoms; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.uoms (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     code text NOT NULL,
     name text NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    company_id uuid
 );
 
 
+ALTER TABLE public.uoms OWNER TO sipaios;
+
 --
--- Name: warehouses; Type: TABLE; Schema: public; Owner: -
+-- Name: warehouses; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.warehouses (
@@ -1003,8 +1249,10 @@ CREATE TABLE public.warehouses (
 );
 
 
+ALTER TABLE public.warehouses OWNER TO sipaios;
+
 --
--- Name: work_centers; Type: TABLE; Schema: public; Owner: -
+-- Name: work_centers; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.work_centers (
@@ -1018,8 +1266,10 @@ CREATE TABLE public.work_centers (
 );
 
 
+ALTER TABLE public.work_centers OWNER TO sipaios;
+
 --
--- Name: work_order_events; Type: TABLE; Schema: public; Owner: -
+-- Name: work_order_events; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.work_order_events (
@@ -1033,8 +1283,10 @@ CREATE TABLE public.work_order_events (
 );
 
 
+ALTER TABLE public.work_order_events OWNER TO sipaios;
+
 --
--- Name: work_orders; Type: TABLE; Schema: public; Owner: -
+-- Name: work_orders; Type: TABLE; Schema: public; Owner: sipaios
 --
 
 CREATE TABLE public.work_orders (
@@ -1060,8 +1312,10 @@ CREATE TABLE public.work_orders (
 );
 
 
+ALTER TABLE public.work_orders OWNER TO sipaios;
+
 --
--- Name: audit_events audit_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: audit_events audit_events_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.audit_events
@@ -1069,7 +1323,7 @@ ALTER TABLE ONLY public.audit_events
 
 
 --
--- Name: backflush_allocations backflush_allocations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: backflush_allocations backflush_allocations_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.backflush_allocations
@@ -1077,7 +1331,7 @@ ALTER TABLE ONLY public.backflush_allocations
 
 
 --
--- Name: backflush_runs backflush_runs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: backflush_runs backflush_runs_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.backflush_runs
@@ -1085,7 +1339,7 @@ ALTER TABLE ONLY public.backflush_runs
 
 
 --
--- Name: backflush_runs backflush_runs_production_lot_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: backflush_runs backflush_runs_production_lot_id_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.backflush_runs
@@ -1093,7 +1347,7 @@ ALTER TABLE ONLY public.backflush_runs
 
 
 --
--- Name: bom_headers bom_headers_company_id_fg_item_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: bom_headers bom_headers_company_id_fg_item_id_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.bom_headers
@@ -1101,7 +1355,7 @@ ALTER TABLE ONLY public.bom_headers
 
 
 --
--- Name: bom_headers bom_headers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: bom_headers bom_headers_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.bom_headers
@@ -1109,7 +1363,7 @@ ALTER TABLE ONLY public.bom_headers
 
 
 --
--- Name: bom_lines bom_lines_bom_version_id_line_no_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: bom_lines bom_lines_bom_version_id_line_no_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.bom_lines
@@ -1117,7 +1371,7 @@ ALTER TABLE ONLY public.bom_lines
 
 
 --
--- Name: bom_lines bom_lines_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: bom_lines bom_lines_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.bom_lines
@@ -1125,7 +1379,7 @@ ALTER TABLE ONLY public.bom_lines
 
 
 --
--- Name: bom_versions bom_versions_bom_header_id_version_no_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: bom_versions bom_versions_bom_header_id_version_no_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.bom_versions
@@ -1133,7 +1387,7 @@ ALTER TABLE ONLY public.bom_versions
 
 
 --
--- Name: bom_versions bom_versions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: bom_versions bom_versions_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.bom_versions
@@ -1141,7 +1395,7 @@ ALTER TABLE ONLY public.bom_versions
 
 
 --
--- Name: companies companies_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: companies companies_code_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.companies
@@ -1149,7 +1403,7 @@ ALTER TABLE ONLY public.companies
 
 
 --
--- Name: companies companies_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: companies companies_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.companies
@@ -1157,7 +1411,7 @@ ALTER TABLE ONLY public.companies
 
 
 --
--- Name: customers customers_company_id_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: customers customers_company_id_code_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.customers
@@ -1165,7 +1419,7 @@ ALTER TABLE ONLY public.customers
 
 
 --
--- Name: customers customers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: customers customers_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.customers
@@ -1173,7 +1427,7 @@ ALTER TABLE ONLY public.customers
 
 
 --
--- Name: goods_receipt_lines goods_receipt_lines_goods_receipt_id_line_no_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: goods_receipt_lines goods_receipt_lines_goods_receipt_id_line_no_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.goods_receipt_lines
@@ -1181,7 +1435,7 @@ ALTER TABLE ONLY public.goods_receipt_lines
 
 
 --
--- Name: goods_receipt_lines goods_receipt_lines_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: goods_receipt_lines goods_receipt_lines_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.goods_receipt_lines
@@ -1189,7 +1443,7 @@ ALTER TABLE ONLY public.goods_receipt_lines
 
 
 --
--- Name: goods_receipts goods_receipts_company_id_grn_no_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: goods_receipts goods_receipts_company_id_grn_no_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.goods_receipts
@@ -1197,7 +1451,7 @@ ALTER TABLE ONLY public.goods_receipts
 
 
 --
--- Name: goods_receipts goods_receipts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: goods_receipts goods_receipts_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.goods_receipts
@@ -1205,7 +1459,7 @@ ALTER TABLE ONLY public.goods_receipts
 
 
 --
--- Name: inventory_balances inventory_balances_company_id_site_id_warehouse_id_item_id__key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: inventory_balances inventory_balances_company_id_site_id_warehouse_id_item_id__key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.inventory_balances
@@ -1213,7 +1467,7 @@ ALTER TABLE ONLY public.inventory_balances
 
 
 --
--- Name: inventory_balances inventory_balances_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: inventory_balances inventory_balances_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.inventory_balances
@@ -1221,7 +1475,7 @@ ALTER TABLE ONLY public.inventory_balances
 
 
 --
--- Name: inventory_lots inventory_lots_company_id_item_id_lot_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: inventory_lots inventory_lots_company_id_item_id_lot_code_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.inventory_lots
@@ -1229,7 +1483,7 @@ ALTER TABLE ONLY public.inventory_lots
 
 
 --
--- Name: inventory_lots inventory_lots_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: inventory_lots inventory_lots_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.inventory_lots
@@ -1237,7 +1491,7 @@ ALTER TABLE ONLY public.inventory_lots
 
 
 --
--- Name: inventory_move_lines inventory_move_lines_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: inventory_move_lines inventory_move_lines_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.inventory_move_lines
@@ -1245,7 +1499,7 @@ ALTER TABLE ONLY public.inventory_move_lines
 
 
 --
--- Name: inventory_moves inventory_moves_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: inventory_moves inventory_moves_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.inventory_moves
@@ -1253,7 +1507,7 @@ ALTER TABLE ONLY public.inventory_moves
 
 
 --
--- Name: iqc_records iqc_records_goods_receipt_line_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: iqc_records iqc_records_goods_receipt_line_id_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.iqc_records
@@ -1261,7 +1515,7 @@ ALTER TABLE ONLY public.iqc_records
 
 
 --
--- Name: iqc_records iqc_records_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: iqc_records iqc_records_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.iqc_records
@@ -1269,7 +1523,7 @@ ALTER TABLE ONLY public.iqc_records
 
 
 --
--- Name: item_cycle_time_versions item_cycle_time_versions_company_id_item_id_work_center_id__key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: item_cycle_time_versions item_cycle_time_versions_company_id_item_id_work_center_id__key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.item_cycle_time_versions
@@ -1277,7 +1531,7 @@ ALTER TABLE ONLY public.item_cycle_time_versions
 
 
 --
--- Name: item_cycle_time_versions item_cycle_time_versions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: item_cycle_time_versions item_cycle_time_versions_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.item_cycle_time_versions
@@ -1285,7 +1539,7 @@ ALTER TABLE ONLY public.item_cycle_time_versions
 
 
 --
--- Name: item_uom_conversions item_uom_conversions_item_id_from_uom_id_to_uom_id_effectiv_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: item_uom_conversions item_uom_conversions_item_id_from_uom_id_to_uom_id_effectiv_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.item_uom_conversions
@@ -1293,7 +1547,7 @@ ALTER TABLE ONLY public.item_uom_conversions
 
 
 --
--- Name: item_uom_conversions item_uom_conversions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: item_uom_conversions item_uom_conversions_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.item_uom_conversions
@@ -1301,7 +1555,7 @@ ALTER TABLE ONLY public.item_uom_conversions
 
 
 --
--- Name: items items_company_id_item_no_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: items items_company_id_item_no_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.items
@@ -1309,7 +1563,7 @@ ALTER TABLE ONLY public.items
 
 
 --
--- Name: items items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: items items_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.items
@@ -1317,7 +1571,7 @@ ALTER TABLE ONLY public.items
 
 
 --
--- Name: lot_uom_conversions lot_uom_conversions_lot_id_from_uom_id_to_uom_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lot_uom_conversions lot_uom_conversions_lot_id_from_uom_id_to_uom_id_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.lot_uom_conversions
@@ -1325,7 +1579,7 @@ ALTER TABLE ONLY public.lot_uom_conversions
 
 
 --
--- Name: lot_uom_conversions lot_uom_conversions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lot_uom_conversions lot_uom_conversions_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.lot_uom_conversions
@@ -1333,7 +1587,7 @@ ALTER TABLE ONLY public.lot_uom_conversions
 
 
 --
--- Name: production_lots production_lots_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: production_lots production_lots_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.production_lots
@@ -1341,7 +1595,7 @@ ALTER TABLE ONLY public.production_lots
 
 
 --
--- Name: production_lots production_lots_work_order_id_fg_lot_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: production_lots production_lots_work_order_id_fg_lot_id_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.production_lots
@@ -1349,7 +1603,7 @@ ALTER TABLE ONLY public.production_lots
 
 
 --
--- Name: production_schedules production_schedules_company_id_work_center_id_work_order_i_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: production_schedules production_schedules_company_id_work_center_id_work_order_i_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.production_schedules
@@ -1357,7 +1611,7 @@ ALTER TABLE ONLY public.production_schedules
 
 
 --
--- Name: production_schedules production_schedules_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: production_schedules production_schedules_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.production_schedules
@@ -1365,7 +1619,7 @@ ALTER TABLE ONLY public.production_schedules
 
 
 --
--- Name: purchase_order_lines purchase_order_lines_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: purchase_order_lines purchase_order_lines_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.purchase_order_lines
@@ -1373,7 +1627,7 @@ ALTER TABLE ONLY public.purchase_order_lines
 
 
 --
--- Name: purchase_order_lines purchase_order_lines_purchase_order_id_line_no_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: purchase_order_lines purchase_order_lines_purchase_order_id_line_no_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.purchase_order_lines
@@ -1381,7 +1635,7 @@ ALTER TABLE ONLY public.purchase_order_lines
 
 
 --
--- Name: purchase_orders purchase_orders_company_id_po_no_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: purchase_orders purchase_orders_company_id_po_no_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.purchase_orders
@@ -1389,7 +1643,7 @@ ALTER TABLE ONLY public.purchase_orders
 
 
 --
--- Name: purchase_orders purchase_orders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: purchase_orders purchase_orders_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.purchase_orders
@@ -1397,7 +1651,7 @@ ALTER TABLE ONLY public.purchase_orders
 
 
 --
--- Name: reason_codes reason_codes_company_id_category_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: reason_codes reason_codes_company_id_category_code_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.reason_codes
@@ -1405,7 +1659,7 @@ ALTER TABLE ONLY public.reason_codes
 
 
 --
--- Name: reason_codes reason_codes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: reason_codes reason_codes_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.reason_codes
@@ -1413,7 +1667,7 @@ ALTER TABLE ONLY public.reason_codes
 
 
 --
--- Name: sales_order_lines sales_order_lines_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: sales_order_lines sales_order_lines_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sales_order_lines
@@ -1421,7 +1675,7 @@ ALTER TABLE ONLY public.sales_order_lines
 
 
 --
--- Name: sales_order_lines sales_order_lines_sales_order_id_line_no_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: sales_order_lines sales_order_lines_sales_order_id_line_no_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sales_order_lines
@@ -1429,7 +1683,7 @@ ALTER TABLE ONLY public.sales_order_lines
 
 
 --
--- Name: sales_orders sales_orders_company_id_so_no_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: sales_orders sales_orders_company_id_so_no_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sales_orders
@@ -1437,7 +1691,7 @@ ALTER TABLE ONLY public.sales_orders
 
 
 --
--- Name: sales_orders sales_orders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: sales_orders sales_orders_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sales_orders
@@ -1445,7 +1699,7 @@ ALTER TABLE ONLY public.sales_orders
 
 
 --
--- Name: shipment_lines shipment_lines_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: shipment_lines shipment_lines_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.shipment_lines
@@ -1453,7 +1707,7 @@ ALTER TABLE ONLY public.shipment_lines
 
 
 --
--- Name: shipment_lines shipment_lines_shipment_id_line_no_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: shipment_lines shipment_lines_shipment_id_line_no_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.shipment_lines
@@ -1461,7 +1715,7 @@ ALTER TABLE ONLY public.shipment_lines
 
 
 --
--- Name: shipments shipments_company_id_ship_no_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: shipments shipments_company_id_ship_no_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.shipments
@@ -1469,7 +1723,7 @@ ALTER TABLE ONLY public.shipments
 
 
 --
--- Name: shipments shipments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: shipments shipments_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.shipments
@@ -1477,7 +1731,7 @@ ALTER TABLE ONLY public.shipments
 
 
 --
--- Name: sites sites_company_id_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: sites sites_company_id_code_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sites
@@ -1485,7 +1739,7 @@ ALTER TABLE ONLY public.sites
 
 
 --
--- Name: sites sites_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: sites sites_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sites
@@ -1493,7 +1747,7 @@ ALTER TABLE ONLY public.sites
 
 
 --
--- Name: suppliers suppliers_company_id_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: suppliers suppliers_company_id_code_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.suppliers
@@ -1501,7 +1755,7 @@ ALTER TABLE ONLY public.suppliers
 
 
 --
--- Name: suppliers suppliers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: suppliers suppliers_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.suppliers
@@ -1509,7 +1763,7 @@ ALTER TABLE ONLY public.suppliers
 
 
 --
--- Name: sys_idempotency_keys sys_idempotency_keys_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: sys_idempotency_keys sys_idempotency_keys_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sys_idempotency_keys
@@ -1517,7 +1771,7 @@ ALTER TABLE ONLY public.sys_idempotency_keys
 
 
 --
--- Name: sys_memberships sys_memberships_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: sys_memberships sys_memberships_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sys_memberships
@@ -1525,7 +1779,7 @@ ALTER TABLE ONLY public.sys_memberships
 
 
 --
--- Name: sys_memberships sys_memberships_tenant_id_user_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: sys_memberships sys_memberships_tenant_id_user_id_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sys_memberships
@@ -1533,31 +1787,23 @@ ALTER TABLE ONLY public.sys_memberships
 
 
 --
--- Name: sys_permissions sys_permissions_key_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: sys_permissions sys_permissions_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sys_permissions
-    ADD CONSTRAINT sys_permissions_key_key UNIQUE (key);
+    ADD CONSTRAINT sys_permissions_pkey PRIMARY KEY (key);
 
 
 --
--- Name: sys_permissions sys_permissions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.sys_permissions
-    ADD CONSTRAINT sys_permissions_pkey PRIMARY KEY (id);
-
-
---
--- Name: sys_role_permissions sys_role_permissions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: sys_role_permissions sys_role_permissions_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sys_role_permissions
-    ADD CONSTRAINT sys_role_permissions_pkey PRIMARY KEY (role_id, permission_id);
+    ADD CONSTRAINT sys_role_permissions_pkey PRIMARY KEY (role_id, permission_key);
 
 
 --
--- Name: sys_roles sys_roles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: sys_roles sys_roles_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sys_roles
@@ -1565,15 +1811,15 @@ ALTER TABLE ONLY public.sys_roles
 
 
 --
--- Name: sys_roles sys_roles_tenant_id_key_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: sys_roles sys_roles_tenant_id_name_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sys_roles
-    ADD CONSTRAINT sys_roles_tenant_id_key_key UNIQUE (tenant_id, key);
+    ADD CONSTRAINT sys_roles_tenant_id_name_key UNIQUE (tenant_id, name);
 
 
 --
--- Name: sys_schema_version sys_schema_version_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: sys_schema_version sys_schema_version_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sys_schema_version
@@ -1581,15 +1827,7 @@ ALTER TABLE ONLY public.sys_schema_version
 
 
 --
--- Name: sys_tenants sys_tenants_code_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.sys_tenants
-    ADD CONSTRAINT sys_tenants_code_key UNIQUE (code);
-
-
---
--- Name: sys_tenants sys_tenants_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: sys_tenants sys_tenants_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sys_tenants
@@ -1597,7 +1835,23 @@ ALTER TABLE ONLY public.sys_tenants
 
 
 --
--- Name: sys_users sys_users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: sys_tenants sys_tenants_slug_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE ONLY public.sys_tenants
+    ADD CONSTRAINT sys_tenants_slug_key UNIQUE (slug);
+
+
+--
+-- Name: sys_users sys_users_email_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE ONLY public.sys_users
+    ADD CONSTRAINT sys_users_email_key UNIQUE (email);
+
+
+--
+-- Name: sys_users sys_users_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sys_users
@@ -1605,7 +1859,7 @@ ALTER TABLE ONLY public.sys_users
 
 
 --
--- Name: uoms uoms_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: uoms uoms_code_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.uoms
@@ -1613,7 +1867,7 @@ ALTER TABLE ONLY public.uoms
 
 
 --
--- Name: uoms uoms_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: uoms uoms_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.uoms
@@ -1621,7 +1875,7 @@ ALTER TABLE ONLY public.uoms
 
 
 --
--- Name: warehouses warehouses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: warehouses warehouses_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.warehouses
@@ -1629,7 +1883,7 @@ ALTER TABLE ONLY public.warehouses
 
 
 --
--- Name: warehouses warehouses_site_id_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: warehouses warehouses_site_id_code_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.warehouses
@@ -1637,7 +1891,7 @@ ALTER TABLE ONLY public.warehouses
 
 
 --
--- Name: work_centers work_centers_company_id_site_id_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: work_centers work_centers_company_id_site_id_code_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.work_centers
@@ -1645,7 +1899,7 @@ ALTER TABLE ONLY public.work_centers
 
 
 --
--- Name: work_centers work_centers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: work_centers work_centers_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.work_centers
@@ -1653,7 +1907,7 @@ ALTER TABLE ONLY public.work_centers
 
 
 --
--- Name: work_order_events work_order_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: work_order_events work_order_events_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.work_order_events
@@ -1661,7 +1915,7 @@ ALTER TABLE ONLY public.work_order_events
 
 
 --
--- Name: work_orders work_orders_company_id_wo_no_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: work_orders work_orders_company_id_wo_no_key; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.work_orders
@@ -1669,7 +1923,7 @@ ALTER TABLE ONLY public.work_orders
 
 
 --
--- Name: work_orders work_orders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: work_orders work_orders_pkey; Type: CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.work_orders
@@ -1677,315 +1931,322 @@ ALTER TABLE ONLY public.work_orders
 
 
 --
--- Name: idx_audit_company_time; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_audit_company_time; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_audit_company_time ON public.audit_events USING btree (company_id, occurred_at DESC);
 
 
 --
--- Name: idx_audit_entity; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_audit_entity; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_audit_entity ON public.audit_events USING btree (entity_type, entity_id);
 
 
 --
--- Name: idx_backflush_alloc_run; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_backflush_alloc_run; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_backflush_alloc_run ON public.backflush_allocations USING btree (backflush_run_id);
 
 
 --
--- Name: idx_bom_lines_component; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_bom_lines_component; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_bom_lines_component ON public.bom_lines USING btree (component_item_id);
 
 
 --
--- Name: idx_bom_lines_version; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_bom_lines_version; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_bom_lines_version ON public.bom_lines USING btree (bom_version_id);
 
 
 --
--- Name: idx_bom_versions_header; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_bom_versions_header; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_bom_versions_header ON public.bom_versions USING btree (bom_header_id);
 
 
 --
--- Name: idx_customers_company; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_customers_company; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_customers_company ON public.customers USING btree (company_id);
 
 
 --
--- Name: idx_cycle_time_item_wc; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_cycle_time_item_wc; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_cycle_time_item_wc ON public.item_cycle_time_versions USING btree (item_id, work_center_id);
 
 
 --
--- Name: idx_grn_lines_grn; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_grn_lines_grn; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_grn_lines_grn ON public.goods_receipt_lines USING btree (goods_receipt_id);
 
 
 --
--- Name: idx_grn_lines_item; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_grn_lines_item; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_grn_lines_item ON public.goods_receipt_lines USING btree (item_id);
 
 
 --
--- Name: idx_grn_supplier; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_grn_supplier; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_grn_supplier ON public.goods_receipts USING btree (supplier_id);
 
 
 --
--- Name: idx_inv_balances_lookup; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_inv_balances_lookup; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_inv_balances_lookup ON public.inventory_balances USING btree (company_id, site_id, warehouse_id, item_id);
 
 
 --
--- Name: idx_inv_move_lines_item; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_inv_move_lines_item; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_inv_move_lines_item ON public.inventory_move_lines USING btree (item_id);
 
 
 --
--- Name: idx_inv_move_lines_lot; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_inv_move_lines_lot; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_inv_move_lines_lot ON public.inventory_move_lines USING btree (lot_id);
 
 
 --
--- Name: idx_inv_move_lines_move; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_inv_move_lines_move; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_inv_move_lines_move ON public.inventory_move_lines USING btree (move_id);
 
 
 --
--- Name: idx_inv_moves_company_time; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_inv_moves_company_time; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_inv_moves_company_time ON public.inventory_moves USING btree (company_id, occurred_at DESC);
 
 
 --
--- Name: idx_inv_moves_external; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_inv_moves_external; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_inv_moves_external ON public.inventory_moves USING btree (source_system, external_ref_id);
 
 
 --
--- Name: idx_inventory_lots_item; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_inventory_lots_item; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_inventory_lots_item ON public.inventory_lots USING btree (item_id);
 
 
 --
--- Name: idx_iqc_status; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_iqc_status; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_iqc_status ON public.iqc_records USING btree (status);
 
 
 --
--- Name: idx_item_uom_conv_item; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_item_uom_conv_item; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_item_uom_conv_item ON public.item_uom_conversions USING btree (item_id);
 
 
 --
--- Name: idx_items_company; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_items_company; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_items_company ON public.items USING btree (company_id);
 
 
 --
--- Name: idx_items_type; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_items_type; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_items_type ON public.items USING btree (item_type);
 
 
 --
--- Name: idx_po_lines_po; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_po_lines_po; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_po_lines_po ON public.purchase_order_lines USING btree (purchase_order_id);
 
 
 --
--- Name: idx_po_supplier; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_po_supplier; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_po_supplier ON public.purchase_orders USING btree (supplier_id);
 
 
 --
--- Name: idx_prod_lots_wo; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_prod_lots_wo; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_prod_lots_wo ON public.production_lots USING btree (work_order_id);
 
 
 --
--- Name: idx_reason_codes_company; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_reason_codes_company; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_reason_codes_company ON public.reason_codes USING btree (company_id);
 
 
 --
--- Name: idx_sched_wc_time; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_sched_wc_time; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_sched_wc_time ON public.production_schedules USING btree (work_center_id, start_at);
 
 
 --
--- Name: idx_sched_wo; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_sched_wo; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_sched_wo ON public.production_schedules USING btree (work_order_id);
 
 
 --
--- Name: idx_ship_lines_ship; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_ship_lines_ship; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_ship_lines_ship ON public.shipment_lines USING btree (shipment_id);
 
 
 --
--- Name: idx_so_customer; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_so_customer; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_so_customer ON public.sales_orders USING btree (customer_id);
 
 
 --
--- Name: idx_so_lines_so; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_so_lines_so; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_so_lines_so ON public.sales_order_lines USING btree (sales_order_id);
 
 
 --
--- Name: idx_suppliers_company; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_suppliers_company; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_suppliers_company ON public.suppliers USING btree (company_id);
 
 
 --
--- Name: idx_sys_memberships_user; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_sys_memberships_user; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_sys_memberships_user ON public.sys_memberships USING btree (user_id);
 
 
 --
--- Name: idx_sys_roles_tenant; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_sys_roles_tenant; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_sys_roles_tenant ON public.sys_roles USING btree (tenant_id);
 
 
 --
--- Name: idx_warehouses_site; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_uoms_company_id; Type: INDEX; Schema: public; Owner: sipaios
+--
+
+CREATE INDEX idx_uoms_company_id ON public.uoms USING btree (company_id);
+
+
+--
+-- Name: idx_warehouses_site; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_warehouses_site ON public.warehouses USING btree (site_id);
 
 
 --
--- Name: idx_wo_events_wo; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_wo_events_wo; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_wo_events_wo ON public.work_order_events USING btree (work_order_id, occurred_at);
 
 
 --
--- Name: idx_wo_item; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_wo_item; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_wo_item ON public.work_orders USING btree (item_id);
 
 
 --
--- Name: idx_wo_status; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_wo_status; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_wo_status ON public.work_orders USING btree (status);
 
 
 --
--- Name: idx_work_centers_site; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_work_centers_site; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX idx_work_centers_site ON public.work_centers USING btree (site_id);
 
 
 --
--- Name: sys_idempotency_keys_company_id_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: sys_idempotency_keys_company_id_idx; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX sys_idempotency_keys_company_id_idx ON public.sys_idempotency_keys USING btree (company_id);
 
 
 --
--- Name: sys_idempotency_keys_expires_at_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: sys_idempotency_keys_expires_at_idx; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX sys_idempotency_keys_expires_at_idx ON public.sys_idempotency_keys USING btree (expires_at);
 
 
 --
--- Name: sys_idempotency_keys_last_seen_at_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: sys_idempotency_keys_last_seen_at_idx; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE INDEX sys_idempotency_keys_last_seen_at_idx ON public.sys_idempotency_keys USING btree (last_seen_at);
 
 
 --
--- Name: sys_idempotency_keys_scope_key_uq; Type: INDEX; Schema: public; Owner: -
+-- Name: sys_idempotency_keys_scope_key_uq; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE UNIQUE INDEX sys_idempotency_keys_scope_key_uq ON public.sys_idempotency_keys USING btree (scope, idempotency_key);
 
 
 --
--- Name: sys_schema_version_schema_name_uq; Type: INDEX; Schema: public; Owner: -
+-- Name: sys_schema_version_schema_name_uq; Type: INDEX; Schema: public; Owner: sipaios
 --
 
 CREATE UNIQUE INDEX sys_schema_version_schema_name_uq ON public.sys_schema_version USING btree (schema_name);
 
 
 --
--- Name: audit_events audit_events_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: audit_events audit_events_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.audit_events
@@ -1993,7 +2254,7 @@ ALTER TABLE ONLY public.audit_events
 
 
 --
--- Name: backflush_allocations backflush_allocations_backflush_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: backflush_allocations backflush_allocations_backflush_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.backflush_allocations
@@ -2001,7 +2262,7 @@ ALTER TABLE ONLY public.backflush_allocations
 
 
 --
--- Name: backflush_allocations backflush_allocations_component_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: backflush_allocations backflush_allocations_component_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.backflush_allocations
@@ -2009,7 +2270,7 @@ ALTER TABLE ONLY public.backflush_allocations
 
 
 --
--- Name: backflush_allocations backflush_allocations_component_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: backflush_allocations backflush_allocations_component_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.backflush_allocations
@@ -2017,7 +2278,7 @@ ALTER TABLE ONLY public.backflush_allocations
 
 
 --
--- Name: backflush_allocations backflush_allocations_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: backflush_allocations backflush_allocations_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.backflush_allocations
@@ -2025,7 +2286,7 @@ ALTER TABLE ONLY public.backflush_allocations
 
 
 --
--- Name: backflush_runs backflush_runs_production_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: backflush_runs backflush_runs_production_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.backflush_runs
@@ -2033,7 +2294,7 @@ ALTER TABLE ONLY public.backflush_runs
 
 
 --
--- Name: backflush_runs backflush_runs_work_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: backflush_runs backflush_runs_work_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.backflush_runs
@@ -2041,7 +2302,7 @@ ALTER TABLE ONLY public.backflush_runs
 
 
 --
--- Name: bom_headers bom_headers_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: bom_headers bom_headers_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.bom_headers
@@ -2049,7 +2310,7 @@ ALTER TABLE ONLY public.bom_headers
 
 
 --
--- Name: bom_headers bom_headers_fg_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: bom_headers bom_headers_fg_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.bom_headers
@@ -2057,7 +2318,7 @@ ALTER TABLE ONLY public.bom_headers
 
 
 --
--- Name: bom_lines bom_lines_bom_version_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: bom_lines bom_lines_bom_version_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.bom_lines
@@ -2065,7 +2326,7 @@ ALTER TABLE ONLY public.bom_lines
 
 
 --
--- Name: bom_lines bom_lines_component_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: bom_lines bom_lines_component_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.bom_lines
@@ -2073,7 +2334,7 @@ ALTER TABLE ONLY public.bom_lines
 
 
 --
--- Name: bom_lines bom_lines_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: bom_lines bom_lines_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.bom_lines
@@ -2081,7 +2342,7 @@ ALTER TABLE ONLY public.bom_lines
 
 
 --
--- Name: bom_versions bom_versions_bom_header_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: bom_versions bom_versions_bom_header_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.bom_versions
@@ -2089,7 +2350,7 @@ ALTER TABLE ONLY public.bom_versions
 
 
 --
--- Name: customers customers_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: customers customers_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.customers
@@ -2097,7 +2358,7 @@ ALTER TABLE ONLY public.customers
 
 
 --
--- Name: goods_receipt_lines goods_receipt_lines_goods_receipt_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: goods_receipt_lines goods_receipt_lines_goods_receipt_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.goods_receipt_lines
@@ -2105,7 +2366,7 @@ ALTER TABLE ONLY public.goods_receipt_lines
 
 
 --
--- Name: goods_receipt_lines goods_receipt_lines_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: goods_receipt_lines goods_receipt_lines_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.goods_receipt_lines
@@ -2113,7 +2374,7 @@ ALTER TABLE ONLY public.goods_receipt_lines
 
 
 --
--- Name: goods_receipt_lines goods_receipt_lines_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: goods_receipt_lines goods_receipt_lines_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.goods_receipt_lines
@@ -2121,7 +2382,7 @@ ALTER TABLE ONLY public.goods_receipt_lines
 
 
 --
--- Name: goods_receipt_lines goods_receipt_lines_purchase_order_line_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: goods_receipt_lines goods_receipt_lines_purchase_order_line_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.goods_receipt_lines
@@ -2129,7 +2390,7 @@ ALTER TABLE ONLY public.goods_receipt_lines
 
 
 --
--- Name: goods_receipt_lines goods_receipt_lines_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: goods_receipt_lines goods_receipt_lines_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.goods_receipt_lines
@@ -2137,7 +2398,7 @@ ALTER TABLE ONLY public.goods_receipt_lines
 
 
 --
--- Name: goods_receipt_lines goods_receipt_lines_warehouse_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: goods_receipt_lines goods_receipt_lines_warehouse_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.goods_receipt_lines
@@ -2145,7 +2406,7 @@ ALTER TABLE ONLY public.goods_receipt_lines
 
 
 --
--- Name: goods_receipts goods_receipts_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: goods_receipts goods_receipts_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.goods_receipts
@@ -2153,7 +2414,7 @@ ALTER TABLE ONLY public.goods_receipts
 
 
 --
--- Name: goods_receipts goods_receipts_purchase_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: goods_receipts goods_receipts_purchase_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.goods_receipts
@@ -2161,7 +2422,7 @@ ALTER TABLE ONLY public.goods_receipts
 
 
 --
--- Name: goods_receipts goods_receipts_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: goods_receipts goods_receipts_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.goods_receipts
@@ -2169,7 +2430,7 @@ ALTER TABLE ONLY public.goods_receipts
 
 
 --
--- Name: goods_receipts goods_receipts_supplier_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: goods_receipts goods_receipts_supplier_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.goods_receipts
@@ -2177,7 +2438,7 @@ ALTER TABLE ONLY public.goods_receipts
 
 
 --
--- Name: inventory_balances inventory_balances_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: inventory_balances inventory_balances_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.inventory_balances
@@ -2185,7 +2446,7 @@ ALTER TABLE ONLY public.inventory_balances
 
 
 --
--- Name: inventory_balances inventory_balances_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: inventory_balances inventory_balances_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.inventory_balances
@@ -2193,7 +2454,7 @@ ALTER TABLE ONLY public.inventory_balances
 
 
 --
--- Name: inventory_balances inventory_balances_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: inventory_balances inventory_balances_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.inventory_balances
@@ -2201,7 +2462,7 @@ ALTER TABLE ONLY public.inventory_balances
 
 
 --
--- Name: inventory_balances inventory_balances_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: inventory_balances inventory_balances_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.inventory_balances
@@ -2209,7 +2470,7 @@ ALTER TABLE ONLY public.inventory_balances
 
 
 --
--- Name: inventory_balances inventory_balances_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: inventory_balances inventory_balances_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.inventory_balances
@@ -2217,7 +2478,7 @@ ALTER TABLE ONLY public.inventory_balances
 
 
 --
--- Name: inventory_balances inventory_balances_warehouse_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: inventory_balances inventory_balances_warehouse_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.inventory_balances
@@ -2225,7 +2486,7 @@ ALTER TABLE ONLY public.inventory_balances
 
 
 --
--- Name: inventory_lots inventory_lots_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: inventory_lots inventory_lots_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.inventory_lots
@@ -2233,7 +2494,7 @@ ALTER TABLE ONLY public.inventory_lots
 
 
 --
--- Name: inventory_lots inventory_lots_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: inventory_lots inventory_lots_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.inventory_lots
@@ -2241,7 +2502,7 @@ ALTER TABLE ONLY public.inventory_lots
 
 
 --
--- Name: inventory_move_lines inventory_move_lines_from_warehouse_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: inventory_move_lines inventory_move_lines_from_warehouse_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.inventory_move_lines
@@ -2249,7 +2510,7 @@ ALTER TABLE ONLY public.inventory_move_lines
 
 
 --
--- Name: inventory_move_lines inventory_move_lines_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: inventory_move_lines inventory_move_lines_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.inventory_move_lines
@@ -2257,7 +2518,7 @@ ALTER TABLE ONLY public.inventory_move_lines
 
 
 --
--- Name: inventory_move_lines inventory_move_lines_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: inventory_move_lines inventory_move_lines_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.inventory_move_lines
@@ -2265,7 +2526,7 @@ ALTER TABLE ONLY public.inventory_move_lines
 
 
 --
--- Name: inventory_move_lines inventory_move_lines_move_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: inventory_move_lines inventory_move_lines_move_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.inventory_move_lines
@@ -2273,7 +2534,7 @@ ALTER TABLE ONLY public.inventory_move_lines
 
 
 --
--- Name: inventory_move_lines inventory_move_lines_reason_code_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: inventory_move_lines inventory_move_lines_reason_code_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.inventory_move_lines
@@ -2281,7 +2542,7 @@ ALTER TABLE ONLY public.inventory_move_lines
 
 
 --
--- Name: inventory_move_lines inventory_move_lines_to_warehouse_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: inventory_move_lines inventory_move_lines_to_warehouse_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.inventory_move_lines
@@ -2289,7 +2550,7 @@ ALTER TABLE ONLY public.inventory_move_lines
 
 
 --
--- Name: inventory_move_lines inventory_move_lines_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: inventory_move_lines inventory_move_lines_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.inventory_move_lines
@@ -2297,7 +2558,7 @@ ALTER TABLE ONLY public.inventory_move_lines
 
 
 --
--- Name: inventory_moves inventory_moves_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: inventory_moves inventory_moves_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.inventory_moves
@@ -2305,7 +2566,7 @@ ALTER TABLE ONLY public.inventory_moves
 
 
 --
--- Name: inventory_moves inventory_moves_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: inventory_moves inventory_moves_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.inventory_moves
@@ -2313,7 +2574,7 @@ ALTER TABLE ONLY public.inventory_moves
 
 
 --
--- Name: iqc_records iqc_records_goods_receipt_line_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: iqc_records iqc_records_goods_receipt_line_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.iqc_records
@@ -2321,7 +2582,7 @@ ALTER TABLE ONLY public.iqc_records
 
 
 --
--- Name: iqc_records iqc_records_reason_code_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: iqc_records iqc_records_reason_code_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.iqc_records
@@ -2329,7 +2590,7 @@ ALTER TABLE ONLY public.iqc_records
 
 
 --
--- Name: item_cycle_time_versions item_cycle_time_versions_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: item_cycle_time_versions item_cycle_time_versions_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.item_cycle_time_versions
@@ -2337,7 +2598,7 @@ ALTER TABLE ONLY public.item_cycle_time_versions
 
 
 --
--- Name: item_cycle_time_versions item_cycle_time_versions_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: item_cycle_time_versions item_cycle_time_versions_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.item_cycle_time_versions
@@ -2345,7 +2606,7 @@ ALTER TABLE ONLY public.item_cycle_time_versions
 
 
 --
--- Name: item_cycle_time_versions item_cycle_time_versions_work_center_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: item_cycle_time_versions item_cycle_time_versions_work_center_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.item_cycle_time_versions
@@ -2353,7 +2614,7 @@ ALTER TABLE ONLY public.item_cycle_time_versions
 
 
 --
--- Name: item_uom_conversions item_uom_conversions_from_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: item_uom_conversions item_uom_conversions_from_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.item_uom_conversions
@@ -2361,7 +2622,7 @@ ALTER TABLE ONLY public.item_uom_conversions
 
 
 --
--- Name: item_uom_conversions item_uom_conversions_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: item_uom_conversions item_uom_conversions_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.item_uom_conversions
@@ -2369,7 +2630,7 @@ ALTER TABLE ONLY public.item_uom_conversions
 
 
 --
--- Name: item_uom_conversions item_uom_conversions_to_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: item_uom_conversions item_uom_conversions_to_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.item_uom_conversions
@@ -2377,7 +2638,7 @@ ALTER TABLE ONLY public.item_uom_conversions
 
 
 --
--- Name: items items_base_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: items items_base_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.items
@@ -2385,7 +2646,7 @@ ALTER TABLE ONLY public.items
 
 
 --
--- Name: items items_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: items items_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.items
@@ -2393,7 +2654,7 @@ ALTER TABLE ONLY public.items
 
 
 --
--- Name: lot_uom_conversions lot_uom_conversions_from_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lot_uom_conversions lot_uom_conversions_from_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.lot_uom_conversions
@@ -2401,7 +2662,7 @@ ALTER TABLE ONLY public.lot_uom_conversions
 
 
 --
--- Name: lot_uom_conversions lot_uom_conversions_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lot_uom_conversions lot_uom_conversions_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.lot_uom_conversions
@@ -2409,7 +2670,7 @@ ALTER TABLE ONLY public.lot_uom_conversions
 
 
 --
--- Name: lot_uom_conversions lot_uom_conversions_to_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lot_uom_conversions lot_uom_conversions_to_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.lot_uom_conversions
@@ -2417,7 +2678,7 @@ ALTER TABLE ONLY public.lot_uom_conversions
 
 
 --
--- Name: production_lots production_lots_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: production_lots production_lots_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.production_lots
@@ -2425,7 +2686,7 @@ ALTER TABLE ONLY public.production_lots
 
 
 --
--- Name: production_lots production_lots_fg_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: production_lots production_lots_fg_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.production_lots
@@ -2433,7 +2694,7 @@ ALTER TABLE ONLY public.production_lots
 
 
 --
--- Name: production_lots production_lots_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: production_lots production_lots_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.production_lots
@@ -2441,7 +2702,7 @@ ALTER TABLE ONLY public.production_lots
 
 
 --
--- Name: production_lots production_lots_work_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: production_lots production_lots_work_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.production_lots
@@ -2449,7 +2710,7 @@ ALTER TABLE ONLY public.production_lots
 
 
 --
--- Name: production_schedules production_schedules_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: production_schedules production_schedules_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.production_schedules
@@ -2457,7 +2718,7 @@ ALTER TABLE ONLY public.production_schedules
 
 
 --
--- Name: production_schedules production_schedules_cycle_time_version_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: production_schedules production_schedules_cycle_time_version_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.production_schedules
@@ -2465,7 +2726,7 @@ ALTER TABLE ONLY public.production_schedules
 
 
 --
--- Name: production_schedules production_schedules_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: production_schedules production_schedules_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.production_schedules
@@ -2473,7 +2734,7 @@ ALTER TABLE ONLY public.production_schedules
 
 
 --
--- Name: production_schedules production_schedules_work_center_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: production_schedules production_schedules_work_center_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.production_schedules
@@ -2481,7 +2742,7 @@ ALTER TABLE ONLY public.production_schedules
 
 
 --
--- Name: production_schedules production_schedules_work_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: production_schedules production_schedules_work_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.production_schedules
@@ -2489,7 +2750,7 @@ ALTER TABLE ONLY public.production_schedules
 
 
 --
--- Name: purchase_order_lines purchase_order_lines_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: purchase_order_lines purchase_order_lines_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.purchase_order_lines
@@ -2497,7 +2758,7 @@ ALTER TABLE ONLY public.purchase_order_lines
 
 
 --
--- Name: purchase_order_lines purchase_order_lines_purchase_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: purchase_order_lines purchase_order_lines_purchase_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.purchase_order_lines
@@ -2505,7 +2766,7 @@ ALTER TABLE ONLY public.purchase_order_lines
 
 
 --
--- Name: purchase_order_lines purchase_order_lines_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: purchase_order_lines purchase_order_lines_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.purchase_order_lines
@@ -2513,7 +2774,7 @@ ALTER TABLE ONLY public.purchase_order_lines
 
 
 --
--- Name: purchase_orders purchase_orders_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: purchase_orders purchase_orders_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.purchase_orders
@@ -2521,7 +2782,7 @@ ALTER TABLE ONLY public.purchase_orders
 
 
 --
--- Name: purchase_orders purchase_orders_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: purchase_orders purchase_orders_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.purchase_orders
@@ -2529,7 +2790,7 @@ ALTER TABLE ONLY public.purchase_orders
 
 
 --
--- Name: purchase_orders purchase_orders_supplier_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: purchase_orders purchase_orders_supplier_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.purchase_orders
@@ -2537,7 +2798,7 @@ ALTER TABLE ONLY public.purchase_orders
 
 
 --
--- Name: reason_codes reason_codes_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: reason_codes reason_codes_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.reason_codes
@@ -2545,7 +2806,7 @@ ALTER TABLE ONLY public.reason_codes
 
 
 --
--- Name: sales_order_lines sales_order_lines_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sales_order_lines sales_order_lines_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sales_order_lines
@@ -2553,7 +2814,7 @@ ALTER TABLE ONLY public.sales_order_lines
 
 
 --
--- Name: sales_order_lines sales_order_lines_sales_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sales_order_lines sales_order_lines_sales_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sales_order_lines
@@ -2561,7 +2822,7 @@ ALTER TABLE ONLY public.sales_order_lines
 
 
 --
--- Name: sales_order_lines sales_order_lines_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sales_order_lines sales_order_lines_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sales_order_lines
@@ -2569,7 +2830,7 @@ ALTER TABLE ONLY public.sales_order_lines
 
 
 --
--- Name: sales_orders sales_orders_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sales_orders sales_orders_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sales_orders
@@ -2577,7 +2838,7 @@ ALTER TABLE ONLY public.sales_orders
 
 
 --
--- Name: sales_orders sales_orders_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sales_orders sales_orders_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sales_orders
@@ -2585,7 +2846,7 @@ ALTER TABLE ONLY public.sales_orders
 
 
 --
--- Name: sales_orders sales_orders_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sales_orders sales_orders_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sales_orders
@@ -2593,7 +2854,7 @@ ALTER TABLE ONLY public.sales_orders
 
 
 --
--- Name: shipment_lines shipment_lines_from_warehouse_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: shipment_lines shipment_lines_from_warehouse_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.shipment_lines
@@ -2601,7 +2862,7 @@ ALTER TABLE ONLY public.shipment_lines
 
 
 --
--- Name: shipment_lines shipment_lines_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: shipment_lines shipment_lines_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.shipment_lines
@@ -2609,7 +2870,7 @@ ALTER TABLE ONLY public.shipment_lines
 
 
 --
--- Name: shipment_lines shipment_lines_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: shipment_lines shipment_lines_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.shipment_lines
@@ -2617,7 +2878,7 @@ ALTER TABLE ONLY public.shipment_lines
 
 
 --
--- Name: shipment_lines shipment_lines_sales_order_line_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: shipment_lines shipment_lines_sales_order_line_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.shipment_lines
@@ -2625,7 +2886,7 @@ ALTER TABLE ONLY public.shipment_lines
 
 
 --
--- Name: shipment_lines shipment_lines_shipment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: shipment_lines shipment_lines_shipment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.shipment_lines
@@ -2633,7 +2894,7 @@ ALTER TABLE ONLY public.shipment_lines
 
 
 --
--- Name: shipment_lines shipment_lines_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: shipment_lines shipment_lines_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.shipment_lines
@@ -2641,7 +2902,7 @@ ALTER TABLE ONLY public.shipment_lines
 
 
 --
--- Name: shipments shipments_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: shipments shipments_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.shipments
@@ -2649,7 +2910,7 @@ ALTER TABLE ONLY public.shipments
 
 
 --
--- Name: shipments shipments_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: shipments shipments_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.shipments
@@ -2657,7 +2918,7 @@ ALTER TABLE ONLY public.shipments
 
 
 --
--- Name: shipments shipments_sales_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: shipments shipments_sales_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.shipments
@@ -2665,7 +2926,7 @@ ALTER TABLE ONLY public.shipments
 
 
 --
--- Name: shipments shipments_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: shipments shipments_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.shipments
@@ -2673,7 +2934,7 @@ ALTER TABLE ONLY public.shipments
 
 
 --
--- Name: sites sites_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sites sites_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sites
@@ -2681,7 +2942,7 @@ ALTER TABLE ONLY public.sites
 
 
 --
--- Name: suppliers suppliers_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: suppliers suppliers_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.suppliers
@@ -2689,7 +2950,7 @@ ALTER TABLE ONLY public.suppliers
 
 
 --
--- Name: sys_idempotency_keys sys_idempotency_keys_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sys_idempotency_keys sys_idempotency_keys_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sys_idempotency_keys
@@ -2697,15 +2958,15 @@ ALTER TABLE ONLY public.sys_idempotency_keys
 
 
 --
--- Name: sys_memberships sys_memberships_role_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sys_memberships sys_memberships_role_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sys_memberships
-    ADD CONSTRAINT sys_memberships_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.sys_roles(id) ON DELETE RESTRICT;
+    ADD CONSTRAINT sys_memberships_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.sys_roles(id) ON DELETE SET NULL;
 
 
 --
--- Name: sys_memberships sys_memberships_tenant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sys_memberships sys_memberships_tenant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sys_memberships
@@ -2713,15 +2974,23 @@ ALTER TABLE ONLY public.sys_memberships
 
 
 --
--- Name: sys_role_permissions sys_role_permissions_permission_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sys_memberships sys_memberships_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE ONLY public.sys_memberships
+    ADD CONSTRAINT sys_memberships_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.sys_users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: sys_role_permissions sys_role_permissions_permission_key_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sys_role_permissions
-    ADD CONSTRAINT sys_role_permissions_permission_id_fkey FOREIGN KEY (permission_id) REFERENCES public.sys_permissions(id) ON DELETE CASCADE;
+    ADD CONSTRAINT sys_role_permissions_permission_key_fkey FOREIGN KEY (permission_key) REFERENCES public.sys_permissions(key) ON DELETE CASCADE;
 
 
 --
--- Name: sys_role_permissions sys_role_permissions_role_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sys_role_permissions sys_role_permissions_role_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sys_role_permissions
@@ -2729,7 +2998,7 @@ ALTER TABLE ONLY public.sys_role_permissions
 
 
 --
--- Name: sys_roles sys_roles_tenant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sys_roles sys_roles_tenant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.sys_roles
@@ -2737,7 +3006,15 @@ ALTER TABLE ONLY public.sys_roles
 
 
 --
--- Name: warehouses warehouses_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: uoms uoms_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE ONLY public.uoms
+    ADD CONSTRAINT uoms_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+
+--
+-- Name: warehouses warehouses_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.warehouses
@@ -2745,7 +3022,7 @@ ALTER TABLE ONLY public.warehouses
 
 
 --
--- Name: work_centers work_centers_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: work_centers work_centers_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.work_centers
@@ -2753,7 +3030,7 @@ ALTER TABLE ONLY public.work_centers
 
 
 --
--- Name: work_centers work_centers_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: work_centers work_centers_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.work_centers
@@ -2761,7 +3038,7 @@ ALTER TABLE ONLY public.work_centers
 
 
 --
--- Name: work_order_events work_order_events_work_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: work_order_events work_order_events_work_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.work_order_events
@@ -2769,7 +3046,7 @@ ALTER TABLE ONLY public.work_order_events
 
 
 --
--- Name: work_orders work_orders_bom_version_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: work_orders work_orders_bom_version_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.work_orders
@@ -2777,7 +3054,7 @@ ALTER TABLE ONLY public.work_orders
 
 
 --
--- Name: work_orders work_orders_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: work_orders work_orders_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.work_orders
@@ -2785,7 +3062,7 @@ ALTER TABLE ONLY public.work_orders
 
 
 --
--- Name: work_orders work_orders_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: work_orders work_orders_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.work_orders
@@ -2793,7 +3070,7 @@ ALTER TABLE ONLY public.work_orders
 
 
 --
--- Name: work_orders work_orders_primary_warehouse_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: work_orders work_orders_primary_warehouse_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.work_orders
@@ -2801,7 +3078,7 @@ ALTER TABLE ONLY public.work_orders
 
 
 --
--- Name: work_orders work_orders_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: work_orders work_orders_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.work_orders
@@ -2809,7 +3086,7 @@ ALTER TABLE ONLY public.work_orders
 
 
 --
--- Name: work_orders work_orders_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: work_orders work_orders_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE ONLY public.work_orders
@@ -2817,49 +3094,575 @@ ALTER TABLE ONLY public.work_orders
 
 
 --
--- Name: sys_memberships memberships_select_self; Type: POLICY; Schema: public; Owner: -
+-- Name: audit_events; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.audit_events ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: audit_events audit_events_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY audit_events_company_isolation ON public.audit_events TO authenticated USING (public.is_tenant_member(company_id, auth.uid())) WITH CHECK (public.is_tenant_member(company_id, auth.uid()));
+
+
+--
+-- Name: audit_events audit_events_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY audit_events_service_role_all ON public.audit_events TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: backflush_allocations; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.backflush_allocations ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: backflush_allocations backflush_allocations_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY backflush_allocations_company_isolation ON public.backflush_allocations TO authenticated USING ((EXISTS ( SELECT 1
+   FROM (public.backflush_runs br
+     JOIN public.work_orders wo ON ((wo.id = br.work_order_id)))
+  WHERE ((br.id = backflush_allocations.backflush_run_id) AND public.is_tenant_member(wo.company_id, auth.uid()))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM (public.backflush_runs br
+     JOIN public.work_orders wo ON ((wo.id = br.work_order_id)))
+  WHERE ((br.id = backflush_allocations.backflush_run_id) AND public.is_tenant_member(wo.company_id, auth.uid())))));
+
+
+--
+-- Name: backflush_allocations backflush_allocations_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY backflush_allocations_service_role_all ON public.backflush_allocations TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: backflush_runs; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.backflush_runs ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: backflush_runs backflush_runs_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY backflush_runs_company_isolation ON public.backflush_runs TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.work_orders wo
+  WHERE ((wo.id = backflush_runs.work_order_id) AND public.is_tenant_member(wo.company_id, auth.uid()))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM public.work_orders wo
+  WHERE ((wo.id = backflush_runs.work_order_id) AND public.is_tenant_member(wo.company_id, auth.uid())))));
+
+
+--
+-- Name: backflush_runs backflush_runs_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY backflush_runs_service_role_all ON public.backflush_runs TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: bom_headers; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.bom_headers ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: bom_headers bom_headers_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY bom_headers_company_isolation ON public.bom_headers TO authenticated USING (public.is_tenant_member(company_id, auth.uid())) WITH CHECK (public.is_tenant_member(company_id, auth.uid()));
+
+
+--
+-- Name: bom_headers bom_headers_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY bom_headers_service_role_all ON public.bom_headers TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: bom_lines; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.bom_lines ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: bom_lines bom_lines_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY bom_lines_company_isolation ON public.bom_lines TO authenticated USING ((EXISTS ( SELECT 1
+   FROM (public.bom_versions bv
+     JOIN public.bom_headers bh ON ((bh.id = bv.bom_header_id)))
+  WHERE ((bv.id = bom_lines.bom_version_id) AND public.is_tenant_member(bh.company_id, auth.uid()))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM (public.bom_versions bv
+     JOIN public.bom_headers bh ON ((bh.id = bv.bom_header_id)))
+  WHERE ((bv.id = bom_lines.bom_version_id) AND public.is_tenant_member(bh.company_id, auth.uid())))));
+
+
+--
+-- Name: bom_lines bom_lines_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY bom_lines_service_role_all ON public.bom_lines TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: bom_versions; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.bom_versions ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: bom_versions bom_versions_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY bom_versions_company_isolation ON public.bom_versions TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.bom_headers bh
+  WHERE ((bh.id = bom_versions.bom_header_id) AND public.is_tenant_member(bh.company_id, auth.uid()))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM public.bom_headers bh
+  WHERE ((bh.id = bom_versions.bom_header_id) AND public.is_tenant_member(bh.company_id, auth.uid())))));
+
+
+--
+-- Name: bom_versions bom_versions_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY bom_versions_service_role_all ON public.bom_versions TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: companies; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.companies ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: companies companies_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY companies_company_isolation ON public.companies TO authenticated USING (public.is_tenant_member(id, auth.uid())) WITH CHECK (public.is_tenant_member(id, auth.uid()));
+
+
+--
+-- Name: companies companies_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY companies_service_role_all ON public.companies TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: customers; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: customers customers_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY customers_company_isolation ON public.customers TO authenticated USING (public.is_tenant_member(company_id, auth.uid())) WITH CHECK (public.is_tenant_member(company_id, auth.uid()));
+
+
+--
+-- Name: customers customers_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY customers_service_role_all ON public.customers TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: goods_receipt_lines; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.goods_receipt_lines ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: goods_receipt_lines goods_receipt_lines_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY goods_receipt_lines_company_isolation ON public.goods_receipt_lines TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.goods_receipts gr
+  WHERE ((gr.id = goods_receipt_lines.goods_receipt_id) AND public.is_tenant_member(gr.company_id, auth.uid()))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM public.goods_receipts gr
+  WHERE ((gr.id = goods_receipt_lines.goods_receipt_id) AND public.is_tenant_member(gr.company_id, auth.uid())))));
+
+
+--
+-- Name: goods_receipt_lines goods_receipt_lines_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY goods_receipt_lines_service_role_all ON public.goods_receipt_lines TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: goods_receipts; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.goods_receipts ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: goods_receipts goods_receipts_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY goods_receipts_company_isolation ON public.goods_receipts TO authenticated USING (public.is_tenant_member(company_id, auth.uid())) WITH CHECK (public.is_tenant_member(company_id, auth.uid()));
+
+
+--
+-- Name: goods_receipts goods_receipts_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY goods_receipts_service_role_all ON public.goods_receipts TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: inventory_balances; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.inventory_balances ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: inventory_balances inventory_balances_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY inventory_balances_company_isolation ON public.inventory_balances TO authenticated USING (public.is_tenant_member(company_id, auth.uid())) WITH CHECK (public.is_tenant_member(company_id, auth.uid()));
+
+
+--
+-- Name: inventory_balances inventory_balances_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY inventory_balances_service_role_all ON public.inventory_balances TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: inventory_lots; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.inventory_lots ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: inventory_lots inventory_lots_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY inventory_lots_company_isolation ON public.inventory_lots TO authenticated USING (public.is_tenant_member(company_id, auth.uid())) WITH CHECK (public.is_tenant_member(company_id, auth.uid()));
+
+
+--
+-- Name: inventory_lots inventory_lots_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY inventory_lots_service_role_all ON public.inventory_lots TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: inventory_move_lines; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.inventory_move_lines ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: inventory_move_lines inventory_move_lines_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY inventory_move_lines_company_isolation ON public.inventory_move_lines TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.inventory_moves im
+  WHERE ((im.id = inventory_move_lines.move_id) AND public.is_tenant_member(im.company_id, auth.uid()))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM public.inventory_moves im
+  WHERE ((im.id = inventory_move_lines.move_id) AND public.is_tenant_member(im.company_id, auth.uid())))));
+
+
+--
+-- Name: inventory_move_lines inventory_move_lines_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY inventory_move_lines_service_role_all ON public.inventory_move_lines TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: inventory_moves; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.inventory_moves ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: inventory_moves inventory_moves_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY inventory_moves_company_isolation ON public.inventory_moves TO authenticated USING (public.is_tenant_member(company_id, auth.uid())) WITH CHECK (public.is_tenant_member(company_id, auth.uid()));
+
+
+--
+-- Name: inventory_moves inventory_moves_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY inventory_moves_service_role_all ON public.inventory_moves TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: iqc_records; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.iqc_records ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: iqc_records iqc_records_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY iqc_records_company_isolation ON public.iqc_records TO authenticated USING ((EXISTS ( SELECT 1
+   FROM (public.goods_receipt_lines grl
+     JOIN public.goods_receipts gr ON ((gr.id = grl.goods_receipt_id)))
+  WHERE ((grl.id = iqc_records.goods_receipt_line_id) AND public.is_tenant_member(gr.company_id, auth.uid()))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM (public.goods_receipt_lines grl
+     JOIN public.goods_receipts gr ON ((gr.id = grl.goods_receipt_id)))
+  WHERE ((grl.id = iqc_records.goods_receipt_line_id) AND public.is_tenant_member(gr.company_id, auth.uid())))));
+
+
+--
+-- Name: iqc_records iqc_records_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY iqc_records_service_role_all ON public.iqc_records TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: item_cycle_time_versions; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.item_cycle_time_versions ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: item_cycle_time_versions item_cycle_time_versions_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY item_cycle_time_versions_company_isolation ON public.item_cycle_time_versions TO authenticated USING (public.is_tenant_member(company_id, auth.uid())) WITH CHECK (public.is_tenant_member(company_id, auth.uid()));
+
+
+--
+-- Name: item_cycle_time_versions item_cycle_time_versions_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY item_cycle_time_versions_service_role_all ON public.item_cycle_time_versions TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: item_uom_conversions; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.item_uom_conversions ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: item_uom_conversions item_uom_conversions_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY item_uom_conversions_company_isolation ON public.item_uom_conversions TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.items i
+  WHERE ((i.id = item_uom_conversions.item_id) AND public.is_tenant_member(i.company_id, auth.uid()))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM public.items i
+  WHERE ((i.id = item_uom_conversions.item_id) AND public.is_tenant_member(i.company_id, auth.uid())))));
+
+
+--
+-- Name: item_uom_conversions item_uom_conversions_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY item_uom_conversions_service_role_all ON public.item_uom_conversions TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: items; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.items ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: items items_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY items_company_isolation ON public.items TO authenticated USING (public.is_tenant_member(company_id, auth.uid())) WITH CHECK (public.is_tenant_member(company_id, auth.uid()));
+
+
+--
+-- Name: items items_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY items_service_role_all ON public.items TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: lot_uom_conversions; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.lot_uom_conversions ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: lot_uom_conversions lot_uom_conversions_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY lot_uom_conversions_company_isolation ON public.lot_uom_conversions TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.inventory_lots l
+  WHERE ((l.id = lot_uom_conversions.lot_id) AND public.is_tenant_member(l.company_id, auth.uid()))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM public.inventory_lots l
+  WHERE ((l.id = lot_uom_conversions.lot_id) AND public.is_tenant_member(l.company_id, auth.uid())))));
+
+
+--
+-- Name: lot_uom_conversions lot_uom_conversions_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY lot_uom_conversions_service_role_all ON public.lot_uom_conversions TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: sys_memberships memberships_select_self; Type: POLICY; Schema: public; Owner: sipaios
 --
 
 CREATE POLICY memberships_select_self ON public.sys_memberships FOR SELECT TO authenticated USING ((user_id = auth.uid()));
 
 
 --
--- Name: sys_memberships memberships_select_tenant_admin; Type: POLICY; Schema: public; Owner: -
+-- Name: sys_memberships memberships_select_tenant_admin; Type: POLICY; Schema: public; Owner: sipaios
 --
 
 CREATE POLICY memberships_select_tenant_admin ON public.sys_memberships FOR SELECT TO authenticated USING (public.is_tenant_admin(tenant_id, auth.uid()));
 
 
 --
--- Name: sys_memberships memberships_write_service; Type: POLICY; Schema: public; Owner: -
+-- Name: sys_memberships memberships_write_service; Type: POLICY; Schema: public; Owner: sipaios
 --
 
 CREATE POLICY memberships_write_service ON public.sys_memberships TO service_role USING (true) WITH CHECK (true);
 
 
 --
--- Name: sys_memberships memberships_write_tenant_admin; Type: POLICY; Schema: public; Owner: -
+-- Name: sys_memberships memberships_write_tenant_admin; Type: POLICY; Schema: public; Owner: sipaios
 --
 
 CREATE POLICY memberships_write_tenant_admin ON public.sys_memberships FOR INSERT TO authenticated WITH CHECK (public.is_tenant_admin(tenant_id, auth.uid()));
 
 
 --
--- Name: sys_permissions perms_select_all; Type: POLICY; Schema: public; Owner: -
+-- Name: sys_permissions perms_select_all; Type: POLICY; Schema: public; Owner: sipaios
 --
 
 CREATE POLICY perms_select_all ON public.sys_permissions FOR SELECT TO anon, authenticated USING (true);
 
 
 --
--- Name: sys_permissions perms_write_service; Type: POLICY; Schema: public; Owner: -
+-- Name: sys_permissions perms_write_service; Type: POLICY; Schema: public; Owner: sipaios
 --
 
 CREATE POLICY perms_write_service ON public.sys_permissions TO service_role USING (true) WITH CHECK (true);
 
 
 --
--- Name: sys_role_permissions role_perms_select_by_membership; Type: POLICY; Schema: public; Owner: -
+-- Name: production_lots; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.production_lots ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: production_lots production_lots_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY production_lots_company_isolation ON public.production_lots TO authenticated USING (public.is_tenant_member(company_id, auth.uid())) WITH CHECK (public.is_tenant_member(company_id, auth.uid()));
+
+
+--
+-- Name: production_lots production_lots_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY production_lots_service_role_all ON public.production_lots TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: production_schedules; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.production_schedules ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: production_schedules production_schedules_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY production_schedules_company_isolation ON public.production_schedules TO authenticated USING (public.is_tenant_member(company_id, auth.uid())) WITH CHECK (public.is_tenant_member(company_id, auth.uid()));
+
+
+--
+-- Name: production_schedules production_schedules_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY production_schedules_service_role_all ON public.production_schedules TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: purchase_order_lines; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.purchase_order_lines ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: purchase_order_lines purchase_order_lines_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY purchase_order_lines_company_isolation ON public.purchase_order_lines TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.purchase_orders po
+  WHERE ((po.id = purchase_order_lines.purchase_order_id) AND public.is_tenant_member(po.company_id, auth.uid()))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM public.purchase_orders po
+  WHERE ((po.id = purchase_order_lines.purchase_order_id) AND public.is_tenant_member(po.company_id, auth.uid())))));
+
+
+--
+-- Name: purchase_order_lines purchase_order_lines_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY purchase_order_lines_service_role_all ON public.purchase_order_lines TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: purchase_orders; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.purchase_orders ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: purchase_orders purchase_orders_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY purchase_orders_company_isolation ON public.purchase_orders TO authenticated USING (public.is_tenant_member(company_id, auth.uid())) WITH CHECK (public.is_tenant_member(company_id, auth.uid()));
+
+
+--
+-- Name: purchase_orders purchase_orders_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY purchase_orders_service_role_all ON public.purchase_orders TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: reason_codes; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.reason_codes ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: reason_codes reason_codes_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY reason_codes_company_isolation ON public.reason_codes TO authenticated USING (public.is_tenant_member(company_id, auth.uid())) WITH CHECK (public.is_tenant_member(company_id, auth.uid()));
+
+
+--
+-- Name: reason_codes reason_codes_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY reason_codes_service_role_all ON public.reason_codes TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: sys_role_permissions role_perms_select_by_membership; Type: POLICY; Schema: public; Owner: sipaios
 --
 
 CREATE POLICY role_perms_select_by_membership ON public.sys_role_permissions FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
@@ -2868,7 +3671,7 @@ CREATE POLICY role_perms_select_by_membership ON public.sys_role_permissions FOR
 
 
 --
--- Name: sys_role_permissions role_perms_write_by_permission; Type: POLICY; Schema: public; Owner: -
+-- Name: sys_role_permissions role_perms_write_by_permission; Type: POLICY; Schema: public; Owner: sipaios
 --
 
 CREATE POLICY role_perms_write_by_permission ON public.sys_role_permissions TO authenticated USING ((EXISTS ( SELECT 1
@@ -2879,121 +3682,725 @@ CREATE POLICY role_perms_write_by_permission ON public.sys_role_permissions TO a
 
 
 --
--- Name: sys_role_permissions role_perms_write_service; Type: POLICY; Schema: public; Owner: -
+-- Name: sys_role_permissions role_perms_write_service; Type: POLICY; Schema: public; Owner: sipaios
 --
 
 CREATE POLICY role_perms_write_service ON public.sys_role_permissions TO service_role USING (true) WITH CHECK (true);
 
 
 --
--- Name: sys_roles roles_delete_by_permission; Type: POLICY; Schema: public; Owner: -
+-- Name: sys_roles roles_delete_by_permission; Type: POLICY; Schema: public; Owner: sipaios
 --
 
 CREATE POLICY roles_delete_by_permission ON public.sys_roles FOR DELETE TO authenticated USING (public.has_permission(tenant_id, auth.uid(), 'rbac.roles.write'::text));
 
 
 --
--- Name: sys_roles roles_select_by_membership; Type: POLICY; Schema: public; Owner: -
+-- Name: sys_roles roles_select_by_membership; Type: POLICY; Schema: public; Owner: sipaios
 --
 
 CREATE POLICY roles_select_by_membership ON public.sys_roles FOR SELECT TO authenticated USING (public.is_tenant_member(tenant_id, auth.uid()));
 
 
 --
--- Name: sys_roles roles_update_by_permission; Type: POLICY; Schema: public; Owner: -
+-- Name: sys_roles roles_update_by_permission; Type: POLICY; Schema: public; Owner: sipaios
 --
 
 CREATE POLICY roles_update_by_permission ON public.sys_roles FOR UPDATE TO authenticated USING (public.has_permission(tenant_id, auth.uid(), 'rbac.roles.write'::text)) WITH CHECK (public.has_permission(tenant_id, auth.uid(), 'rbac.roles.write'::text));
 
 
 --
--- Name: sys_roles roles_write_by_permission; Type: POLICY; Schema: public; Owner: -
+-- Name: sys_roles roles_write_by_permission; Type: POLICY; Schema: public; Owner: sipaios
 --
 
 CREATE POLICY roles_write_by_permission ON public.sys_roles FOR INSERT TO authenticated WITH CHECK (public.has_permission(tenant_id, auth.uid(), 'rbac.roles.write'::text));
 
 
 --
--- Name: sys_roles roles_write_service; Type: POLICY; Schema: public; Owner: -
+-- Name: sys_roles roles_write_service; Type: POLICY; Schema: public; Owner: sipaios
 --
 
 CREATE POLICY roles_write_service ON public.sys_roles TO service_role USING (true) WITH CHECK (true);
 
 
 --
--- Name: sys_memberships; Type: ROW SECURITY; Schema: public; Owner: -
+-- Name: sales_order_lines; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.sales_order_lines ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: sales_order_lines sales_order_lines_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY sales_order_lines_company_isolation ON public.sales_order_lines TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.sales_orders so
+  WHERE ((so.id = sales_order_lines.sales_order_id) AND public.is_tenant_member(so.company_id, auth.uid()))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM public.sales_orders so
+  WHERE ((so.id = sales_order_lines.sales_order_id) AND public.is_tenant_member(so.company_id, auth.uid())))));
+
+
+--
+-- Name: sales_order_lines sales_order_lines_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY sales_order_lines_service_role_all ON public.sales_order_lines TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: sales_orders; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.sales_orders ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: sales_orders sales_orders_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY sales_orders_company_isolation ON public.sales_orders TO authenticated USING (public.is_tenant_member(company_id, auth.uid())) WITH CHECK (public.is_tenant_member(company_id, auth.uid()));
+
+
+--
+-- Name: sales_orders sales_orders_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY sales_orders_service_role_all ON public.sales_orders TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: shipment_lines; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.shipment_lines ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: shipment_lines shipment_lines_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY shipment_lines_company_isolation ON public.shipment_lines TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.shipments s
+  WHERE ((s.id = shipment_lines.shipment_id) AND public.is_tenant_member(s.company_id, auth.uid()))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM public.shipments s
+  WHERE ((s.id = shipment_lines.shipment_id) AND public.is_tenant_member(s.company_id, auth.uid())))));
+
+
+--
+-- Name: shipment_lines shipment_lines_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY shipment_lines_service_role_all ON public.shipment_lines TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: shipments; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.shipments ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: shipments shipments_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY shipments_company_isolation ON public.shipments TO authenticated USING (public.is_tenant_member(company_id, auth.uid())) WITH CHECK (public.is_tenant_member(company_id, auth.uid()));
+
+
+--
+-- Name: shipments shipments_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY shipments_service_role_all ON public.shipments TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: sites; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.sites ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: sites sites_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY sites_company_isolation ON public.sites TO authenticated USING (public.is_tenant_member(company_id, auth.uid())) WITH CHECK (public.is_tenant_member(company_id, auth.uid()));
+
+
+--
+-- Name: sites sites_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY sites_service_role_all ON public.sites TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: suppliers; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.suppliers ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: suppliers suppliers_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY suppliers_company_isolation ON public.suppliers TO authenticated USING (public.is_tenant_member(company_id, auth.uid())) WITH CHECK (public.is_tenant_member(company_id, auth.uid()));
+
+
+--
+-- Name: suppliers suppliers_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY suppliers_service_role_all ON public.suppliers TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: sys_idempotency_keys; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.sys_idempotency_keys ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: sys_idempotency_keys sys_idempotency_keys_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY sys_idempotency_keys_company_isolation ON public.sys_idempotency_keys TO authenticated USING (((company_id IS NOT NULL) AND public.is_tenant_member(company_id, auth.uid()))) WITH CHECK (((company_id IS NOT NULL) AND public.is_tenant_member(company_id, auth.uid())));
+
+
+--
+-- Name: sys_idempotency_keys sys_idempotency_keys_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY sys_idempotency_keys_service_role_all ON public.sys_idempotency_keys TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: sys_memberships; Type: ROW SECURITY; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE public.sys_memberships ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: sys_permissions; Type: ROW SECURITY; Schema: public; Owner: -
+-- Name: sys_permissions; Type: ROW SECURITY; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE public.sys_permissions ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: sys_role_permissions; Type: ROW SECURITY; Schema: public; Owner: -
+-- Name: sys_role_permissions; Type: ROW SECURITY; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE public.sys_role_permissions ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: sys_roles; Type: ROW SECURITY; Schema: public; Owner: -
+-- Name: sys_roles; Type: ROW SECURITY; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE public.sys_roles ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: sys_tenants; Type: ROW SECURITY; Schema: public; Owner: -
+-- Name: sys_tenants; Type: ROW SECURITY; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE public.sys_tenants ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: sys_users; Type: ROW SECURITY; Schema: public; Owner: -
+-- Name: sys_users; Type: ROW SECURITY; Schema: public; Owner: sipaios
 --
 
 ALTER TABLE public.sys_users ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: sys_tenants tenants_select_own; Type: POLICY; Schema: public; Owner: -
+-- Name: sys_tenants tenants_select_own; Type: POLICY; Schema: public; Owner: sipaios
 --
 
 CREATE POLICY tenants_select_own ON public.sys_tenants FOR SELECT TO authenticated USING (public.is_tenant_member(id, auth.uid()));
 
 
 --
--- Name: sys_tenants tenants_write_service; Type: POLICY; Schema: public; Owner: -
+-- Name: sys_tenants tenants_write_service; Type: POLICY; Schema: public; Owner: sipaios
 --
 
 CREATE POLICY tenants_write_service ON public.sys_tenants TO service_role USING (true) WITH CHECK (true);
 
 
 --
--- Name: sys_users users_select_self; Type: POLICY; Schema: public; Owner: -
+-- Name: uoms; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.uoms ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: uoms uoms_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY uoms_company_isolation ON public.uoms TO authenticated USING (((company_id IS NOT NULL) AND public.is_tenant_member(company_id, auth.uid()))) WITH CHECK (((company_id IS NOT NULL) AND public.is_tenant_member(company_id, auth.uid())));
+
+
+--
+-- Name: uoms uoms_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY uoms_service_role_all ON public.uoms TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: sys_users users_select_self; Type: POLICY; Schema: public; Owner: sipaios
 --
 
 CREATE POLICY users_select_self ON public.sys_users FOR SELECT TO authenticated USING ((id = auth.uid()));
 
 
 --
--- Name: sys_users users_update_self; Type: POLICY; Schema: public; Owner: -
+-- Name: sys_users users_update_self; Type: POLICY; Schema: public; Owner: sipaios
 --
 
 CREATE POLICY users_update_self ON public.sys_users FOR UPDATE TO authenticated USING ((id = auth.uid())) WITH CHECK ((id = auth.uid()));
 
 
 --
--- Name: sys_users users_write_service; Type: POLICY; Schema: public; Owner: -
+-- Name: sys_users users_write_service; Type: POLICY; Schema: public; Owner: sipaios
 --
 
 CREATE POLICY users_write_service ON public.sys_users TO service_role USING (true) WITH CHECK (true);
 
 
 --
+-- Name: warehouses; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.warehouses ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: warehouses warehouses_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY warehouses_company_isolation ON public.warehouses TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.sites s
+  WHERE ((s.id = warehouses.site_id) AND public.is_tenant_member(s.company_id, auth.uid()))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM public.sites s
+  WHERE ((s.id = warehouses.site_id) AND public.is_tenant_member(s.company_id, auth.uid())))));
+
+
+--
+-- Name: warehouses warehouses_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY warehouses_service_role_all ON public.warehouses TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: work_centers; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.work_centers ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: work_centers work_centers_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY work_centers_company_isolation ON public.work_centers TO authenticated USING (public.is_tenant_member(company_id, auth.uid())) WITH CHECK (public.is_tenant_member(company_id, auth.uid()));
+
+
+--
+-- Name: work_centers work_centers_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY work_centers_service_role_all ON public.work_centers TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: work_order_events; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.work_order_events ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: work_order_events work_order_events_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY work_order_events_company_isolation ON public.work_order_events TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.work_orders wo
+  WHERE ((wo.id = work_order_events.work_order_id) AND public.is_tenant_member(wo.company_id, auth.uid()))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM public.work_orders wo
+  WHERE ((wo.id = work_order_events.work_order_id) AND public.is_tenant_member(wo.company_id, auth.uid())))));
+
+
+--
+-- Name: work_order_events work_order_events_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY work_order_events_service_role_all ON public.work_order_events TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: work_orders; Type: ROW SECURITY; Schema: public; Owner: sipaios
+--
+
+ALTER TABLE public.work_orders ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: work_orders work_orders_company_isolation; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY work_orders_company_isolation ON public.work_orders TO authenticated USING (public.is_tenant_member(company_id, auth.uid())) WITH CHECK (public.is_tenant_member(company_id, auth.uid()));
+
+
+--
+-- Name: work_orders work_orders_service_role_all; Type: POLICY; Schema: public; Owner: sipaios
+--
+
+CREATE POLICY work_orders_service_role_all ON public.work_orders TO service_role USING (true) WITH CHECK (true);
+
+
+--
+-- Name: SCHEMA public; Type: ACL; Schema: -; Owner: sipaios
+--
+
+REVOKE USAGE ON SCHEMA public FROM PUBLIC;
+GRANT ALL ON SCHEMA public TO PUBLIC;
+GRANT USAGE ON SCHEMA public TO anon;
+GRANT USAGE ON SCHEMA public TO authenticated;
+GRANT USAGE ON SCHEMA public TO service_role;
+
+
+--
+-- Name: TABLE audit_events; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.audit_events TO authenticated;
+GRANT ALL ON TABLE public.audit_events TO service_role;
+
+
+--
+-- Name: TABLE backflush_allocations; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.backflush_allocations TO authenticated;
+GRANT ALL ON TABLE public.backflush_allocations TO service_role;
+
+
+--
+-- Name: TABLE backflush_runs; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.backflush_runs TO authenticated;
+GRANT ALL ON TABLE public.backflush_runs TO service_role;
+
+
+--
+-- Name: TABLE bom_headers; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.bom_headers TO authenticated;
+GRANT ALL ON TABLE public.bom_headers TO service_role;
+
+
+--
+-- Name: TABLE bom_lines; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.bom_lines TO authenticated;
+GRANT ALL ON TABLE public.bom_lines TO service_role;
+
+
+--
+-- Name: TABLE bom_versions; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.bom_versions TO authenticated;
+GRANT ALL ON TABLE public.bom_versions TO service_role;
+
+
+--
+-- Name: TABLE companies; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.companies TO authenticated;
+GRANT ALL ON TABLE public.companies TO service_role;
+
+
+--
+-- Name: TABLE customers; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.customers TO authenticated;
+GRANT ALL ON TABLE public.customers TO service_role;
+
+
+--
+-- Name: TABLE goods_receipt_lines; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.goods_receipt_lines TO authenticated;
+GRANT ALL ON TABLE public.goods_receipt_lines TO service_role;
+
+
+--
+-- Name: TABLE goods_receipts; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.goods_receipts TO authenticated;
+GRANT ALL ON TABLE public.goods_receipts TO service_role;
+
+
+--
+-- Name: TABLE inventory_balances; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.inventory_balances TO authenticated;
+GRANT ALL ON TABLE public.inventory_balances TO service_role;
+
+
+--
+-- Name: TABLE inventory_lots; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.inventory_lots TO authenticated;
+GRANT ALL ON TABLE public.inventory_lots TO service_role;
+
+
+--
+-- Name: TABLE inventory_move_lines; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.inventory_move_lines TO authenticated;
+GRANT ALL ON TABLE public.inventory_move_lines TO service_role;
+
+
+--
+-- Name: TABLE inventory_moves; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.inventory_moves TO authenticated;
+GRANT ALL ON TABLE public.inventory_moves TO service_role;
+
+
+--
+-- Name: TABLE iqc_records; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.iqc_records TO authenticated;
+GRANT ALL ON TABLE public.iqc_records TO service_role;
+
+
+--
+-- Name: TABLE item_cycle_time_versions; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.item_cycle_time_versions TO authenticated;
+GRANT ALL ON TABLE public.item_cycle_time_versions TO service_role;
+
+
+--
+-- Name: TABLE item_uom_conversions; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.item_uom_conversions TO authenticated;
+GRANT ALL ON TABLE public.item_uom_conversions TO service_role;
+
+
+--
+-- Name: TABLE items; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.items TO authenticated;
+GRANT ALL ON TABLE public.items TO service_role;
+
+
+--
+-- Name: TABLE lot_uom_conversions; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.lot_uom_conversions TO authenticated;
+GRANT ALL ON TABLE public.lot_uom_conversions TO service_role;
+
+
+--
+-- Name: TABLE production_lots; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.production_lots TO authenticated;
+GRANT ALL ON TABLE public.production_lots TO service_role;
+
+
+--
+-- Name: TABLE production_schedules; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.production_schedules TO authenticated;
+GRANT ALL ON TABLE public.production_schedules TO service_role;
+
+
+--
+-- Name: TABLE purchase_order_lines; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.purchase_order_lines TO authenticated;
+GRANT ALL ON TABLE public.purchase_order_lines TO service_role;
+
+
+--
+-- Name: TABLE purchase_orders; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.purchase_orders TO authenticated;
+GRANT ALL ON TABLE public.purchase_orders TO service_role;
+
+
+--
+-- Name: TABLE reason_codes; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.reason_codes TO authenticated;
+GRANT ALL ON TABLE public.reason_codes TO service_role;
+
+
+--
+-- Name: TABLE sales_order_lines; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.sales_order_lines TO authenticated;
+GRANT ALL ON TABLE public.sales_order_lines TO service_role;
+
+
+--
+-- Name: TABLE sales_orders; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.sales_orders TO authenticated;
+GRANT ALL ON TABLE public.sales_orders TO service_role;
+
+
+--
+-- Name: TABLE shipment_lines; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.shipment_lines TO authenticated;
+GRANT ALL ON TABLE public.shipment_lines TO service_role;
+
+
+--
+-- Name: TABLE shipments; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.shipments TO authenticated;
+GRANT ALL ON TABLE public.shipments TO service_role;
+
+
+--
+-- Name: TABLE sites; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.sites TO authenticated;
+GRANT ALL ON TABLE public.sites TO service_role;
+
+
+--
+-- Name: TABLE suppliers; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.suppliers TO authenticated;
+GRANT ALL ON TABLE public.suppliers TO service_role;
+
+
+--
+-- Name: TABLE sys_idempotency_keys; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.sys_idempotency_keys TO authenticated;
+GRANT ALL ON TABLE public.sys_idempotency_keys TO service_role;
+
+
+--
+-- Name: TABLE sys_memberships; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT ALL ON TABLE public.sys_memberships TO service_role;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.sys_memberships TO authenticated;
+
+
+--
+-- Name: TABLE sys_permissions; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT ALL ON TABLE public.sys_permissions TO service_role;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.sys_permissions TO authenticated;
+GRANT SELECT ON TABLE public.sys_permissions TO anon;
+
+
+--
+-- Name: TABLE sys_role_permissions; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT ALL ON TABLE public.sys_role_permissions TO service_role;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.sys_role_permissions TO authenticated;
+
+
+--
+-- Name: TABLE sys_roles; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT ALL ON TABLE public.sys_roles TO service_role;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.sys_roles TO authenticated;
+
+
+--
+-- Name: TABLE sys_tenants; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT ALL ON TABLE public.sys_tenants TO service_role;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.sys_tenants TO authenticated;
+
+
+--
+-- Name: TABLE sys_users; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT ALL ON TABLE public.sys_users TO service_role;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.sys_users TO authenticated;
+
+
+--
+-- Name: TABLE uoms; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.uoms TO authenticated;
+GRANT ALL ON TABLE public.uoms TO service_role;
+
+
+--
+-- Name: TABLE warehouses; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.warehouses TO authenticated;
+GRANT ALL ON TABLE public.warehouses TO service_role;
+
+
+--
+-- Name: TABLE work_centers; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.work_centers TO authenticated;
+GRANT ALL ON TABLE public.work_centers TO service_role;
+
+
+--
+-- Name: TABLE work_order_events; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.work_order_events TO authenticated;
+GRANT ALL ON TABLE public.work_order_events TO service_role;
+
+
+--
+-- Name: TABLE work_orders; Type: ACL; Schema: public; Owner: sipaios
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.work_orders TO authenticated;
+GRANT ALL ON TABLE public.work_orders TO service_role;
+
+
+--
 -- PostgreSQL database dump complete
 --
 
-\unrestrict NbT3cZxOxUPcXJYVMk4drtXLzqvoWwdMN52npSMBaxTBCQgLslaPw4Cp0npl5xd
+\unrestrict Vdf7omoBwrTttNni4Mtxr2XOuuVvOmTOb85I80gaylbFfCb6fcybMeFQYbWvahG
 
