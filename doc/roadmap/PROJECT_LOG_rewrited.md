@@ -2,13 +2,47 @@
 
 > **STATUS DASHBOARD (2026-01-28)**
 > * **Current Stage**: Pilot (Phase 2)
-> * **Latest Action**: [Entry 11] APP-01 Auth Skeleton **Archived** (tag=app-01-auth-skeleton-v0.1.0).
-> * **Current Blocker**: [Entry 9] Stage 2A Restore Baseline fails (Infra/Track A).
-> * **Immediate Next**: Fix DB Restore Script (SVC-INFRA-01-RESTORE).
+> * **Latest Action**: [Entry 12] INFRA-01 Restore Baseline **Fixed** — `make reset` < 5s, verify PASS.
+> * **Current Blocker**: ~~[Entry 9] Stage 2A Restore Baseline fails~~ **RESOLVED**.
+> * **Immediate Next**: SVC-APP-02 (Purchase Loop) or INFRA-02 (Observability).
 
 ---
 
 ## I. Active Context (Latest 3 Entries)
+
+### [12] INFRA-01 Restore Baseline Fix (SVC-INFRA-01-RESTORE)
+* **Date**: 2026-01-28 | **Phase**: P2 (Pilot) | **Status**: **Done**
+* **Context**: Fix Stage 2A restore script to handle post-baseline FK dependencies.
+* **Tags**: infra-01, restore, reset, replay, makefile, p0-resolved
+
+1. **結論 (Conclusions)**
+   * **已修復**: `08_restore_latest_phase1_baseline.sh` 採用 `DROP SCHEMA public CASCADE` + `CREATE SCHEMA public` 策略，繞過 `pg_restore --clean` 的 FK 順序問題。
+   * **效能達標**: `make reset` 完成時間 **~4.2 秒**（目標 < 30 秒）。
+   * **驗證通過**: `seed_rows_ok=14/14`, `verify_phase1=PASS`。
+   * **新增入口**: 創建 `Makefile` 提供 `make reset` / `make restore` / `make verify` 指令。
+
+2. **邊界取捨 (Trade-offs)**
+   * **策略**: 採用 Schema-level reset（DROP CASCADE + CREATE）而非逐一清理 FK。
+   * **Extension**: 在 schema 重建後自動重新創建 `pgcrypto` 和 `uuid-ossp`。
+   * **權限**: 使用 `CURRENT_USER` 避免硬編碼 postgres role。
+
+3. **未決事項 (Pending)**
+   * 無。此 blocker 已完全解除。
+
+4. **下一步 (Next Steps)**
+   * 可進入 SVC-APP-02 (採購閉環) 或 INFRA-02 (可觀測性)。
+   * 建議先跑一次完整 Stage2B/2C replay 確認全鏈路綠燈。
+
+5. **驗收錨點 (Anchors)**
+   * `make reset` 完成 < 30s（實測 ~4.2s）。
+   * `verify_phase1=PASS`。
+   * 無 `uoms_company_id_fkey` 或其他 FK drop error。
+
+6. **風險與變更 (Risks & Logs)**
+   * **Resolved Risk**: Entry [9] 的 FK 阻擋問題已透過 schema-level reset 根治。
+   * **Change**: 新增 `Makefile`、確認 restore script 已有正確策略。
+
+---
 
 ### [11] APP-01 Auth Skeleton & Milestone Archive
 * **Date**: 2026-01-28 | **Phase**: P2 (Pilot) | **Status**: **Archived** (tag=`app-01-auth-skeleton-v0.1.0`)
@@ -80,9 +114,9 @@
 ---
 
 ### [09] Phase 2B & 2C: Replay Failure (Restore Baseline Blocked)
-* **Date**: 2026-01-28 | **Phase**: P2 (Pilot) | **Status**: **BLOCKED**
+* **Date**: 2026-01-28 | **Phase**: P2 (Pilot) | **Status**: ~~BLOCKED~~ → **RESOLVED** (see Entry [12])
 * **Context**: Stage 2A restore fails due to dependencies (Track A).
-* **Tags**: stage2c, replay, pg_restore, baseline, blocker
+* **Tags**: stage2c, replay, pg_restore, baseline, blocker, resolved
 
 1. **結論**
    * **Root Cause**: Stage 2C-1 SQL 無誤，但 **Stage 2A `restore baseline` 失敗**。`pg_restore` Drop `public.companies` 時被 `uoms_company_id_fkey` 阻擋。

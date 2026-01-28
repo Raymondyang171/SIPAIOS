@@ -1,0 +1,904 @@
+markdown# .clinerules - Claude Code Agent 專案規則
+
+本檔案定義 Claude Code Agent 在此專案的行為規範與執行流程。
+**本檔案優先級：最高** - 任何衝突時以此檔案為準。
+
+版本：v2.1
+最後更新：2026-01-28
+
+════════════════════════════════════════════════════════════════
+§ 1. SVC 任務自動處理流程
+════════════════════════════════════════════════════════════════
+
+## 1.1 觸發條件
+
+當收到以下任一格式的任務時，啟動 SVC 流程：
+- 開頭為「SVC:」或「【SVC」
+- 開頭為「Service Change:」
+- 明確提到「修復」「新增」「調整」且涉及代碼變更
+
+## 1.2 自動執行步驟
+
+### Step 1: 讀取 SVC Rewriter 模板
+```
+立即讀取：@doc/prompts/svc_rewriter_for_claude.md
+```
+
+### Step 2: 判斷 SVC 類型
+
+**類型 A：原始 SVC（需要重寫）**
+
+特徵（符合任一即判定為原始版）：
+- [ ] 總長度 < 500 字
+- [ ] 缺少「§ 0. 前置作業」章節
+- [ ] 缺少具體代碼範例（BEFORE/AFTER）
+- [ ] 缺少可執行的測試指令
+- [ ] 缺少「階段 1：規劃確認」結構
+
+動作：
+1. 使用 `svc_rewriter_for_claude.md` 模板重寫
+2. 補充所有缺失的章節（§ 0-7）
+3. 補充具體範例、測試指令、Self-Check 清單
+4. 輸出重寫後的完整版 SVC
+5. 然後進入 Step 3
+
+範例：
+```
+原始 SVC: "Fix OrderService concurrency issue, add idempotency"
+↓ 判定為原始版
+↓ 自動重寫成完整版（含 § 0-7）
+↓ 進入階段 1
+```
+
+**類型 B：完整 SVC（直接執行）**
+
+特徵（必須全部符合）：
+- [x] 有完整的 § 0-7 結構
+- [x] 有具體代碼範例或技術方案
+- [x] 有可執行的測試指令
+- [x] 有「階段 1：規劃確認」章節
+
+動作：
+1. 直接進入 Step 3（不重寫）
+
+### Step 3: 開始執行【階段 1：規劃確認】
+
+**強制要求（不得跳過）**：
+
+1. 變更影響評估：
+```
+   a) 受影響檔案：<列出 1-5 個，含路徑>
+   b) 技術方案選擇：<採用哪個方案？理由？>
+   c) 風險點：<列出 1-3 個 + 緩解措施>
+   d) 回退策略：<失敗時如何處理 + git restore 指令>
+   e) 是否需要我確認後再動手？(YES/NO)
+```
+
+2. 等待人類批准：
+   - 若人類回覆「批准」或「YES」或「繼續」→ 進入階段 2
+   - 若人類回覆「NO」或「調整」→ 重新規劃
+   - 若人類直接提問 → 先回答問題，再問是否批准
+
+3. 只有在獲得批准後，才能進入【階段 2：執行結果】
+
+## 1.3 禁止行為
+
+❌ **絕對禁止**：收到 SVC 後直接開始改代碼
+❌ **絕對禁止**：跳過階段 1，直接進入階段 2
+❌ **絕對禁止**：在階段 1 就開始使用 `str_replace`、`create_file` 等工具
+
+如果發現自己正要這樣做，立即停止並回到階段 1。
+
+════════════════════════════════════════════════════════════════
+§ 2. 專案文檔閱讀優先級
+════════════════════════════════════════════════════════════════
+
+## 2.1 初次接觸專案（必讀）
+
+第一次執行任務時，按順序讀取：
+1. `doc/00_INDEX.md` - 文檔導覽地圖
+2. `doc/CONTEXT.md` - 決策邊界與「不做什麼」
+3. `doc/README.md` - 專案總覽與交付模式
+
+## 2.2 依任務類型選讀
+
+### 任務類型：API 開發/修改
+必讀：
+- `doc/API_SPECIFICATION.md` - API 骨架、Idempotency、Webhook
+- `doc/SECURITY_MODEL.md` - RBAC、Data Scope、Audit Log
+
+選讀：
+- `doc/ARCHITECTURE.md` - 確認 Service 層職責
+
+### 任務類型：資料庫 Schema/Migration
+必讀：
+- `doc/ARCHITECTURE.md` - DB 職責邊界
+- `doc/DATA_RETENTION_POLICY.md` - 資料保留規則
+
+選讀：
+- `doc/UPDATE_MECHANISM.md` - Migration 回滾策略
+
+### 任務類型：PDA/裝置相關
+必讀：
+- `doc/PDA_DEVICE_MANAGEMENT.md` - 裝置管理、離線、Kiosk
+- `doc/SECURITY_MODEL.md` - Device Trust 模型
+
+### 任務類型：權限/RBAC
+必讀：
+- `doc/SECURITY_MODEL.md` - RBAC/Scope 規則
+- `doc/API_SPECIFICATION.md` - 權限檢查點
+
+### 任務類型：Agent/自動化
+必讀：
+- `doc/AI_AGENT_CONTRACT.md` - Agent 權限邊界、Kill Switch
+- `doc/SECURITY_MODEL.md` - Service Account 管理
+
+### 任務類型：部署/維運/腳本
+必讀：
+- `doc/INSTALL.md` - 安裝 SOP
+- `doc/OPS_RUNBOOK.md` - 維運 SOP
+- `doc/UPDATE_MECHANISM.md` - 更新與回滾
+
+選讀：
+- `doc/DISASTER_RECOVERY_PLAN.md` - DR 演練
+- `doc/DIAGNOSTICS_BUNDLE.md` - 診斷包規格
+
+## 2.3 強制閱讀觸發條件
+
+以下情況**必須**先讀取對應文檔才能繼續：
+
+| 關鍵字 | 必讀文檔 |
+|--------|----------|
+| idempotency / 冪等 / 重複 | API_SPECIFICATION.md § 4 |
+| RBAC / 權限 / scope | SECURITY_MODEL.md § 3 |
+| audit / 稽核 / 追蹤 | SECURITY_MODEL.md § 5, API_SPECIFICATION.md § 5 |
+| device / PDA / 裝置 | PDA_DEVICE_MANAGEMENT.md |
+| agent / 自動化 / service account | AI_AGENT_CONTRACT.md |
+| webhook / 整合 / ERP | API_SPECIFICATION.md § 7 |
+| migration / schema / DDL | ARCHITECTURE.md § 1.4, UPDATE_MECHANISM.md |
+| backup / restore / DR | DISASTER_RECOVERY_PLAN.md, OPS_RUNBOOK.md |
+| retention / 清理 / 歸檔 | DATA_RETENTION_POLICY.md |
+
+════════════════════════════════════════════════════════════════
+§ 3. 代碼風格與技術約束
+════════════════════════════════════════════════════════════════
+
+## 3.1 TypeScript/JavaScript（強制規範）
+
+### Type Safety（最高優先級）
+```typescript
+// ❌ FORBIDDEN - 永遠不要這樣寫
+async getOrder(id: any): Promise {
+  return await this.db.query(...);
+}
+
+// ✅ REQUIRED - 必須明確型別
+interface OrderDTO {
+  order_id: string;
+  material_no: string;
+  qty: number;
+  status: OrderStatus;
+  created_at: string; // ISO 8601
+}
+
+async getOrder(id: string): Promise {
+  const result = await this.db.query(...);
+  return result.rows[0] ?? null; // 明確處理 null
+}
+```
+
+### Idempotency（寫入型方法必備）
+```typescript
+// ✅ REQUIRED - 所有寫入方法必須支援 idempotency_key
+async createWorkOrder(
+  input: CreateWODTO,
+  idempotencyKey: string  // 必須參數
+): Promise {
+  // 1. 檢查 key 是否已存在
+  const existing = await this.idempotencyRepo.get(idempotencyKey);
+  if (existing) {
+    if (existing.request_hash === hash(input)) {
+      return existing.response_body; // 同 payload → 回傳快取
+    }
+    throw new ConflictError('Idempotency key reused'); // 409
+  }
+
+  // 2. 執行業務邏輯（必須在 transaction 內）
+  return this.db.transaction(async (tx) => {
+    const wo = await tx.insert('work_orders', input);
+    
+    // 3. 記錄 idempotency
+    await tx.insert('sys_idempotency_keys', {
+      idempotency_key: idempotencyKey,
+      request_hash: hash(input),
+      response_body: wo,
+      expires_at: new Date(Date.now() + 24 * 3600 * 1000)
+    });
+    
+    return wo;
+  });
+}
+```
+
+### Audit Trail（敏感操作必備）
+```typescript
+// ✅ REQUIRED - 敏感操作必須寫 audit log
+async approveWorkOrder(woId: string, actor: Actor): Promise {
+  await this.db.transaction(async (tx) => {
+    // 1. 執行業務邏輯
+    await tx.update('work_orders', { status: 'APPROVED' }, { id: woId });
+    
+    // 2. 必須記錄 audit（事件字典化）
+    await this.auditService.log({
+      event_type: 'WORK_ORDER_APPROVED', // 對齊 sys_audit_logs 字典
+      actor_id: actor.userId,
+      actor_type: actor.isHuman ? 'HUMAN' : 'MACHINE',
+      resource_type: 'WORK_ORDER',
+      resource_id: woId,
+      changes: { status: { from: 'PENDING', to: 'APPROVED' } },
+      ip_address: actor.ipAddress,
+      device_id: actor.deviceId
+    }, tx);
+  });
+}
+```
+
+**必須記錄 Audit 的操作**（不完整列表）：
+- 權限變更（RBAC、角色指派）
+- 裝置管理（核准、撤銷）
+- 工單狀態變更（核准、取消、完工）
+- 庫存異動（入庫、出庫、調撥）
+- 敏感資料存取（L3 欄位查詢、匯出）
+- Agent 自動操作（所有自動化動作）
+
+### Transaction 邊界（資料一致性）
+```typescript
+// ❌ FORBIDDEN - 多步驟操作未包在 transaction
+async transferInventory(from: string, to: string, qty: number) {
+  await this.deduct(from, qty);  // 💥 若下一步失敗，會扣庫但沒轉入
+  await this.add(to, qty);
+}
+
+// ✅ REQUIRED - 必須在 transaction 內
+async transferInventory(from: string, to: string, qty: number) {
+  await this.db.transaction(async (tx) => {
+    await this.deduct(from, qty, tx);
+    await this.add(to, qty, tx);
+    await this.auditService.log({ event: 'TRANSFER', ... }, tx);
+  });
+}
+```
+
+### Error Handling（可行動化）
+```typescript
+// ❌ FORBIDDEN - 錯誤訊息不可行動
+throw new Error('Not found');
+
+// ✅ REQUIRED - 提供具體建議
+class InventoryNotFoundError extends AppError {
+  constructor(materialNo: string) {
+    super(
+      'INVENTORY_NOT_FOUND',
+      `料號 ${materialNo} 不存在`,
+      {
+        suggestion: '請先建立料號主檔，或檢查料號是否輸入正確',
+        material_no: materialNo,
+        related_docs: '/docs/inventory-setup'
+      }
+    );
+    this.statusCode = 404;
+  }
+}
+```
+
+### RBAC 最終裁決點（App Core）
+```typescript
+// ❌ FORBIDDEN - 把權限檢查丟給 Controller
+// controller.ts
+if (!req.user.hasPermission('APPROVE_WO')) {
+  return res.status(403).json({ error: 'Forbidden' });
+}
+await orderService.approve(woId);
+
+// ✅ REQUIRED - Service 層是最終裁決點
+// order.service.ts
+async approve(woId: string, actor: Actor): Promise {
+  // 1. 權限檢查（最終裁決）
+  if (!await this.rbac.can(actor, 'APPROVE_WO', woId)) {
+    throw new PermissionDeniedError('APPROVE_WO');
+  }
+  
+  // 2. 資料範圍檢查（Data Scope）
+  const wo = await this.getWorkOrder(woId);
+  if (!await this.rbac.canAccessResource(actor, wo)) {
+    throw new PermissionDeniedError('APPROVE_WO', 'Out of scope');
+  }
+  
+  // 3. 業務邏輯
+  await this.db.update(...);
+}
+```
+
+## 3.2 Shell Script（維運腳本）
+
+### Exit Code 正確傳遞
+```bash
+# ❌ FORBIDDEN - tee 會吃掉 exit code
+psql -f script.sql | tee -a log.txt
+if [ $? -ne 0 ]; then  # 永遠是 0
+  echo "Failed"
+fi
+
+# ✅ REQUIRED - 使用 PIPESTATUS
+psql -f script.sql 2>&1 | tee -a log.txt
+if [ ${PIPESTATUS[0]} -ne 0 ]; then
+  echo "[ERROR] psql failed"
+  exit 1
+fi
+```
+
+### 日誌格式標準化
+```bash
+# ✅ REQUIRED - 使用統一的日誌標籤
+echo "[INFO] Starting restore..."
+echo "[OK]   Restore completed (0.23s)"
+echo "[ERROR] Restore failed - relation does not exist"
+echo "[RESULT] stage2c_1=PASS"  # 機器可讀
+```
+
+### 冪等性設計
+```bash
+# ✅ REQUIRED - 腳本必須可重複執行
+# 檢查資源是否已存在
+if docker ps | grep -q supabase-db; then
+  echo "[INFO] Container already running, skipping creation"
+else
+  docker run -d --name supabase-db ...
+fi
+```
+
+## 3.3 SQL/Migration
+
+### DDL 變更必須可回退
+```sql
+-- ✅ REQUIRED - 提供 rollback 策略
+-- migration: 001_add_company_id.up.sql
+ALTER TABLE units ADD COLUMN company_id UUID;
+CREATE INDEX idx_units_company_id ON units(company_id);
+
+-- migration: 001_add_company_id.down.sql
+DROP INDEX IF EXISTS idx_units_company_id;
+ALTER TABLE units DROP COLUMN IF EXISTS company_id;
+```
+
+### 大型變更分階段執行
+```sql
+-- Phase 1: 新增可空欄位
+ALTER TABLE products ADD COLUMN company_id UUID NULL;
+
+-- Phase 2: 回填資料（可在應用層或 Worker 執行）
+-- UPDATE products SET company_id = ... WHERE ...;
+
+-- Phase 3: 改為 NOT NULL（確認回填完成後）
+-- ALTER TABLE products ALTER COLUMN company_id SET NOT NULL;
+```
+
+### 索引建立避免鎖表
+```sql
+-- ❌ FORBIDDEN - 會鎖表
+CREATE INDEX idx_orders_created_at ON orders(created_at);
+
+-- ✅ REQUIRED - 使用 CONCURRENTLY
+CREATE INDEX CONCURRENTLY idx_orders_created_at ON orders(created_at);
+```
+
+════════════════════════════════════════════════════════════════
+§ 4. 全域禁止事項
+════════════════════════════════════════════════════════════════
+
+## 4.1 安全與隱私
+
+❌ **絕對禁止提交以下內容**：
+- `.env`、`.env.local`、`.env.production` 等環境變數檔案
+- API keys、tokens、passwords、私鑰、憑證
+- 包含真實客戶資料的 SQL dumps
+- 包含 PII（個資）的測試資料或範例
+
+如果需要提供範例配置：
+```bash
+# ✅ CORRECT - 使用 .env.example
+DATABASE_URL=postgresql://user:pass@localhost:5432/dbname
+SUPABASE_KEY=your_supabase_anon_key_here
+
+# ❌ FORBIDDEN - 不要提交真實的 .env
+DATABASE_URL=postgresql://prod_user:RealP@ssw0rd@prod.example.com:5432/prod_db
+```
+
+## 4.2 代碼輸出限制
+
+❌ **禁止在回覆中貼大量代碼**
+
+規則：
+- 關鍵變更摘要：≤ 15 行
+- 完整實作：用「檔案路徑 + 行號 + 摘要」描述
+
+範例：
+```
+✅ CORRECT 回覆格式：
+"在 services/order/order.service.ts 第 45-60 行：
+- 加入 idempotency_key 參數
+- 在 transaction 開始前檢查 sys_idempotency_keys
+- 若 key 存在且 payload 相同，回傳快取結果
+- 若 key 存在但 payload 不同，拋出 409 Conflict"
+
+❌ FORBIDDEN 回覆格式：
+<貼 80 行完整 TypeScript 代碼>
+```
+
+例外：
+- 代碼範例 ≤ 10 行（用於說明概念）
+- SQL snippet ≤ 5 行（用於說明 schema）
+- 錯誤訊息原文（診斷用）
+
+## 4.3 架構邊界
+
+❌ **禁止跨職責修改**
+
+| 層級 | 允許做什麼 | 禁止做什麼 |
+|------|-----------|-----------|
+| **UI** | 顯示 gate、友善提示、空狀態處理 | 權限判定、業務邏輯、直接操作 DB |
+| **API/Controller** | 參數驗證、路由、格式轉換 | RBAC 裁決、Transaction、直接操作 DB |
+| **Service** | RBAC 最終裁決、業務邏輯、Transaction | 直接操作 HTTP response、UI 顯示邏輯 |
+| **DB** | 資料完整性（FK/constraint）、索引 | 複雜業務邏輯、權限判定 |
+
+範例：
+```typescript
+// ❌ FORBIDDEN - Service 層做 HTTP response
+async getOrder(id: string, res: Response) {
+  const order = await this.db.query(...);
+  return res.json(order);  // 跨職責
+}
+
+// ✅ CORRECT - Service 層只回傳資料
+async getOrder(id: string): Promise {
+  return this.db.query(...);
+}
+```
+
+## 4.4 猜測與假設
+
+❌ **禁止填充假設的內容**
+
+遇到以下情況，必須明確列出「需要什麼資訊」：
+- 不確定資料表結構 → 要求提供 schema 或指向文檔
+- 不確定 API 契約 → 要求提供 interface 定義
+- 不確定業務規則 → 要求提供決策邏輯
+- 不確定現有實作 → 要求提供檔案路徑
+
+範例：
+```
+✅ CORRECT 回應：
+"我需要以下資訊才能繼續：
+1. sys_idempotency_keys 表的 schema（或指向 migration 檔案）
+2. IdempotencyService 是否已存在？（若存在，請提供路徑）
+3. hash() 函數使用哪個演算法？（MD5/SHA256/其他）"
+
+❌ FORBIDDEN 回應：
+"我假設 sys_idempotency_keys 有以下欄位..."
+<直接寫假設的 schema>
+```
+
+════════════════════════════════════════════════════════════════
+§ 5. Claude Code Agent 特定行為
+════════════════════════════════════════════════════════════════
+
+## 5.1 Context Window 管理策略
+
+### 檔案大小限制
+- 單一檔案 > 300 行 → 建議拆分或只修改特定函數
+- 需要修改多個大檔案 → 分多個 SVC 執行
+
+### 閱讀策略
+```
+優先級 1：只讀需要修改的檔案
+優先級 2：讀取直接相依的 interface/type 定義
+優先級 3：讀取相關文檔（ARCHITECTURE.md 等）
+
+避免：一次讀取整個 repo 的所有檔案
+```
+
+## 5.2 小步快跑原則
+
+### 複雜任務拆分
+當 SVC 涉及以下任一情況時，建議拆分：
+- 需要修改 5+ 個檔案
+- 需要 migration + service + API 三層都改
+- 需要新增 > 3 個新的 interface/type
+
+拆分範例：
+```
+原始 SVC: "新增 Company 管理功能（含 RBAC、Audit、API）"
+
+拆分為：
+SVC-1: 新增 Company schema + migration
+SVC-2: 新增 CompanyService（RBAC + Audit）
+SVC-3: 新增 Company API endpoints
+SVC-4: 補充 Company 相關測試
+```
+
+## 5.3 Self-Check 機制
+
+### 在使用任何工具前（str_replace/create_file/bash_tool）先問自己：
+```
+[ ] 我已完成階段 1 規劃確認並獲得批准了嗎？
+[ ] 我確定要改這個檔案嗎？（在白名單內？）
+[ ] 我知道這個改動的風險點嗎？
+[ ] 我知道失敗時如何回滾嗎？
+[ ] 這個改動會影響其他模組嗎？（需要通知使用者？）
+```
+
+如果有任何一項是「否」或「不確定」：
+→ 停止使用工具
+→ 回到階段 1 補充資訊
+→ 重新獲得批准
+
+## 5.4 錯誤處理標準流程
+
+當執行過程中遇到錯誤：
+
+1. **立即停止**：不要嘗試「繞過」或「猜測修復」
+2. **保留現場**：記錄完整的錯誤訊息（不要只摘要）
+3. **提供診斷資訊**：
+```
+   a) 錯誤訊息原文（完整 stderr）
+   b) 失敗在哪一步（具體到行號）
+   c) 相關 log 檔案位置
+   d) 回滾指令（git restore）
+   e) 需要什麼額外資訊才能診斷
+```
+4. **不要重試**：除非使用者明確要求
+
+範例：
+```
+❌ FORBIDDEN 回應：
+"遇到錯誤，我試試看改成另一種寫法..."
+<直接重試>
+
+✅ CORRECT 回應：
+"執行失敗，錯誤資訊：
+
+a) 錯誤訊息原文：
+```
+   ERROR: relation "units" does not exist
+   LINE 1: ALTER TABLE units ADD COLUMN company_id UUID;
+```
+
+b) 失敗在哪一步：
+   scripts/db/stage2c_10_add_company_columns.sql 第 3 行
+
+c) 可能原因：
+   - Stage2A/2B 的 units 表尚未建立
+   - 或腳本執行順序錯誤
+
+d) 回滾指令：
+   git restore scripts/db/02_replay_stage2c_*.sh
+
+e) 需要確認：
+   - 請執行 `psql -c '\dt units'` 確認 units 表是否存在
+   - 或提供 Stage2A/2B 的執行 log
+
+是否需要我調整方案？"
+```
+
+════════════════════════════════════════════════════════════════
+§ 6. 執行前自我檢查清單
+════════════════════════════════════════════════════════════════
+
+## 在開始任何任務前，先確認：
+
+### 理解 Context
+- [ ] 我已經讀過相關的專案文檔了嗎？
+- [ ] 我知道這個功能/模組目前怎麼運作的嗎？
+- [ ] 我知道為什麼要做這個改動嗎？（解決什麼問題）
+
+### 明確範圍
+- [ ] 我知道要改哪些檔案嗎？（白名單）
+- [ ] 我知道不能改哪些檔案嗎？（紅線）
+- [ ] 我知道這個改動會影響哪些其他模組嗎？
+
+### 可驗證
+- [ ] 我知道成功的判準是什麼嗎？（PASS criteria）
+- [ ] 我有可執行的測試步驟嗎？（含期望結果）
+- [ ] 我知道如何確認「真的修好了」嗎？
+
+### 可回退
+- [ ] 我知道失敗時如何回滾嗎？（git restore 指令）
+- [ ] 我知道哪些改動是不可逆的嗎？（如 DROP TABLE）
+- [ ] 我有備份/快照可以還原嗎？（如果涉及資料）
+
+### 分階段
+- [ ] 我準備好先完成「階段 1：規劃確認」了嗎？
+- [ ] 我會等待批准後才進入「階段 2：執行」嗎？
+- [ ] 我知道如果規劃被拒絕，要怎麼調整嗎？
+
+**如果有任何一項是「否」：先停下來補充資訊，不要往下執行。**
+
+════════════════════════════════════════════════════════════════
+§ 7. 常見情境處理指南
+════════════════════════════════════════════════════════════════
+
+## 情境 1：使用者貼了一個簡短的需求
+
+範例：
+```
+"幫我在 OrderService 加入 idempotency 檢查"
+```
+
+處理流程：
+1. 判定為「原始 SVC」（缺少結構）
+2. 讀取 `@doc/prompts/svc_rewriter_for_claude.md`
+3. 讀取相關文檔：
+   - `@doc/API_SPECIFICATION.md` § 4（Idempotency 規範）
+   - 找到 OrderService 現有實作
+4. 重寫成完整版 SVC（含 § 0-7）
+5. 輸出重寫版並進入【階段 1：規劃確認】
+
+## 情境 2：使用者貼了一個已結構化的 SVC
+
+範例：
+```
+【SVC：修復 Stage2A Restore 失敗】
+§ 0. 前置作業...
+§ 1. 問題分析...
+...
+§ 7. 回覆契約...
+```
+
+處理流程：
+1. 判定為「完整 SVC」（有 § 0-7 結構）
+2. 直接讀取 § 0 要求的檔案
+3. 直接進入【階段 1：規劃確認】
+
+## 情境 3：使用者直接說「批准」或「繼續」
+
+處理流程：
+1. 確認當前在階段 1
+2. 進入【階段 2：執行】
+3. 開始使用工具（str_replace/create_file 等）
+4. 執行完畢後提供完整的「§ 7.2 執行結果」
+
+## 情境 4：使用者說「不批准」或「調整」
+
+處理流程：
+1. 詢問：「請問需要調整哪個部分？」
+   - 技術方案？
+   - 受影響檔案？
+   - 風險緩解措施？
+2. 根據回饋重新規劃
+3. 再次輸出【階段 1：規劃確認】
+4. 等待新的批准
+
+## 情境 5：執行過程中遇到錯誤
+
+處理流程：
+1. **立即停止**所有工具使用
+2. 記錄完整錯誤（不要只摘要）
+3. 提供診斷資訊（按 § 5.4 格式）
+4. 提供回滾指令
+5. 等待使用者指示（不要自動重試）
+
+## 情境 6：使用者問「為什麼要這樣做」
+
+處理流程：
+1. 引用對應的專案文檔章節
+2. 解釋技術理由（如「為何 Service 層是 RBAC 最終裁決點」）
+3. 提供正確 vs 錯誤的對照範例
+4. 詢問是否還有疑問
+5. 確認後繼續原任務
+
+## 情境 7：使用者說「跳過階段 1，直接改」
+
+處理流程：
+```
+❌ 絕對不允許
+
+回應：
+"根據 .clinerules § 1.3，我不能跳過階段 1。
+這是為了確保：
+- 我們對改動範圍有共識
+- 風險點已被識別
+- 回退策略已準備好
+
+請讓我先完成【階段 1：規劃確認】，這只需要 1-2 分鐘。"
+```
+
+════════════════════════════════════════════════════════════════
+§ 8. 專案特定術語與慣例
+════════════════════════════════════════════════════════════════
+
+## 8.1 命名規範
+
+### 資料表 (Tables)
+- 系統表：`sys_*`（如 sys_users, sys_roles）
+- 業務表：複數名詞（如 orders, products, units）
+- 關聯表：`<table1>_<table2>`（如 user_roles）
+
+### 欄位 (Columns)
+- 料號：`material_no`（不是 material_id）
+- 工單：`wo_no`（不是 work_order_id）
+- 數量：`qty`（精度：Decimal 4 位）
+- 時間戳：`*_at`（如 created_at, updated_at）
+- 時間格式：ISO 8601 UTC（`2023-10-27T10:00:00Z`）
+
+### Service Account
+- 命名：`sa-agent-<function>-<env>`
+- 範例：`sa-agent-restock-prod`
+
+### Audit Event Type
+- 格式：`<RESOURCE>_<ACTION>`（全大寫）
+- 範例：`WORK_ORDER_APPROVED`, `INVENTORY_ADJUSTED`
+
+## 8.2 專案特定概念
+
+### Data Scope（資料範圍）
+- `OWN`：只能看自己建立的
+- `DEPT`：只能看同部門的
+- `ALL`：可看全公司的
+
+### 裝置狀態 (Device Status)
+- `PENDING_APPROVAL`：等待核准
+- `ACTIVE`：已啟用
+- `REVOKED`：已撤銷
+
+### RLS (Row-Level Security)
+- 此專案使用「App 層主控」而非「DB 層 RLS」
+- 所有權限檢查在 Service 層做最終裁決
+
+### Idempotency Key
+- 格式：UUID v4
+- 保留期：24 小時
+- 重複 key 但不同 payload → 409 Conflict
+
+════════════════════════════════════════════════════════════════
+§ 9. 版本歷史與維護
+════════════════════════════════════════════════════════════════
+
+## 本檔案的變更流程
+
+1. 任何對 `.clinerules` 的修改必須：
+   - 記錄在本節的版本歷史
+   - 在專案 CHANGELOG.md 留下記錄
+   - 通知所有協作者
+
+2. 重大變更（影響行為）需要：
+   - 更新版本號（本檔案頂部）
+   - 更新「最後更新」日期
+   - 在 Git commit message 標註 `[clinerules]`
+
+## 版本歷史
+
+### v2.1 (2026-01-28)
+- 初始版本
+- 整合 SVC 自動處理流程
+- 定義 TypeScript/Shell/SQL 規範
+- 加入 Claude Code Agent 特定行為指引
+
+════════════════════════════════════════════════════════════════
+結束
+════════════════════════════════════════════════════════════════
+
+本規則檔案是「活的文件」，會隨專案演進而調整。
+如有疑問或建議，請在專案 repo 開 issue 討論。
+
+📦 配套檔案
+1. .vscode/settings.json（VS Code 專案設定）
+json{
+  "files.associations": {
+    ".clinerules": "markdown"
+  },
+  "files.exclude": {
+    "**/.clinerules": false
+  },
+  "search.exclude": {
+    "**/.clinerules": false
+  },
+  "editor.rulers": [80],
+  "editor.wordWrap": "on",
+  "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  }
+}
+```
+
+### 2. `.gitattributes`（確保換行符一致）
+```
+# .clinerules 必須使用 LF
+.clinerules text eol=lf
+
+# Markdown 文檔也使用 LF
+*.md text eol=lf
+3. CHANGELOG.md 範例條目
+markdown## [Unreleased]
+
+### Added
+- `.clinerules`: Claude Code Agent 專案規則檔案
+  - 自動 SVC 重寫流程
+  - TypeScript/Shell/SQL 代碼規範
+  - 階段式執行強制機制
+
+✅ 安裝檢查清單
+完成以下步驟確保設定生效：
+bash# 1. 複製 .clinerules 到專案根目錄
+cp <這個檔案> .clinerules
+
+# 2. 複製 VS Code 設定（如果使用 VS Code）
+mkdir -p .vscode
+cp <settings.json> .vscode/settings.json
+
+# 3. 加入 .gitattributes（如果沒有）
+echo ".clinerules text eol=lf" >> .gitattributes
+echo "*.md text eol=lf" >> .gitattributes
+
+# 4. 提交到 Git
+git add .clinerules .vscode/settings.json .gitattributes
+git commit -m "Add .clinerules for Claude Code Agent
+
+- Auto-rewrite SVC tasks using svc_rewriter template
+- Enforce staged execution (planning → approval → execution)
+- Define TypeScript/Shell/SQL coding standards
+- Add self-check mechanisms
+"
+
+# 5. 驗證設定
+# 開啟 Claude Code Agent，貼入測試 SVC：
+# "SVC: Add logging to OrderService.createOrder method"
+# 期望：Claude 自動讀取 .clinerules 並進入 SVC 重寫流程
+
+🎯 驗證腳本
+建立 scripts/validate-clinerules.sh 來檢查設定：
+bash#!/bin/bash
+
+echo "Validating .clinerules setup..."
+
+# 檢查檔案存在
+if [ ! -f .clinerules ]; then
+  echo "❌ .clinerules not found"
+  exit 1
+fi
+
+# 檢查檔案大小（應該 > 10KB）
+size=$(wc -c < .clinerules)
+if [ $size -lt 10240 ]; then
+  echo "❌ .clinerules too small (might be incomplete)"
+  exit 1
+fi
+
+# 檢查關鍵章節是否存在
+sections=(
+  "§ 1. SVC 任務自動處理流程"
+  "§ 2. 專案文檔閱讀優先級"
+  "§ 3. 代碼風格與技術約束"
+  "§ 4. 全域禁止事項"
+  "§ 5. Claude Code Agent 特定行為"
+)
+
+for section in "${sections[@]}"; do
+  if ! grep -q "$section" .clinerules; then
+    echo "❌ Missing section: $section"
+    exit 1
+  fi
+done
+
+# 檢查 svc_rewriter 引用
+if ! grep -q "doc/prompts/svc_rewriter_for_claude.md" .clinerules; then
+  echo "❌ Missing reference to svc_rewriter_for_claude.md"
+  exit 1
+fi
+
+echo "✅ .clinerules validation passed"
+bash# 設定執行權限
+chmod +x scripts/validate-clinerules.sh
+
+# 執行驗證
+./scripts/validate-clinerules.sh

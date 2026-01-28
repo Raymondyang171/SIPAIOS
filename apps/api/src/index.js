@@ -2,6 +2,7 @@ import express from 'express';
 import { config } from './config.js';
 import { pool } from './db.js';
 import authRoutes from './routes/auth.js';
+import purchaseRoutes from './routes/purchase.js';
 
 const app = express();
 
@@ -30,6 +31,9 @@ app.get('/health', async (req, res) => {
 
 // Auth routes
 app.use(authRoutes);
+
+// Purchase routes (PO, GRN, Inventory)
+app.use(purchaseRoutes);
 
 // 404 handler
 app.use((req, res) => {

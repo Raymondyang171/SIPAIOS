@@ -1,4 +1,56 @@
-[ENTRY HEADER]
+
+Title：11 恢復可重播交付:11 APP-01 Auth Skeleton 驗收通過與里程碑存檔
+
+Date：2026-01-28
+
+Stage：Pilot
+
+Phase：P2
+
+Status：Done
+
+Scope Impact：API / DB / Docs / Ops
+
+Related SVC：SVC-APP-01-AUTH-SKELETON
+
+Next Owner：You / Claude(VSCode)
+
+Tags（可選）：app-01, auth, jwt, switch-company, postman, newman, seed, replay-gate
+
+1. 結論（已定案）
+
+* APP-01 API Server（Express）完成並可本機啟動，`/health`、`/login`、`/switch-company` 全部驗收通過（Newman 0 failures）。
+* Seed 成功建立測試使用者與 memberships，並完成 `sys_users.password_hash` 欄位補強（migration 已跑過）。
+* 已確認「手動驗證失敗」主因為打錯 port/路由（3000 為 hello 容器、正確為 3001）。
+
+2. 本次確定方案邊界取捨
+
+* 先交付最小可用 Auth：僅做 access token（JWT HS256）與租戶切換；暫不做 refresh token / RBAC UI / device allowlist。
+* 以 Postman/Newman 自動化作為唯一權威驗收（比手打 curl 更可重播），手動 curl 僅作輔助。
+* 允許 `apps/api` 使用 npm（與主 repo pnpm 可並存），但以 `.env.example`、runbook 與 Postman 檔確保可重現。
+
+3. 未決事項
+
+* 供應鏈警告治理：`npm audit` 顯示 high severity vulnerabilities（尚未分類是否 prod/dev 依賴與是否需要強制升版）。
+* 專案 SoT 補帳：`PROJECT_LOG_rewrited.md` 的 Status Dashboard/Entry（如 Stage2A blocker）是否要同步更新為已解除（待你決定是否同一筆 commit 一起納入）。
+
+4. 下一步（1–3 個最小動作）
+
+* 依既定指令在 repo 進行里程碑存檔：`git add`（apps/api + runbook）→ `git commit` → `git tag` → `git push`（含 tags）。
+* 跑一次「存檔後回歸」：依 runbook 重跑 `seed → start → newman`，確認仍為 0 failures。
+* 若要處理漏洞：先執行 `npm audit`（在 `apps/api`）判斷是否可 `npm audit fix`（不 force）。
+
+5. 驗收錨點（可觀測結果）
+
+* `npm run seed` 顯示 `✅ Seed complete!`，且 memberships 列表符合預期（multi 同時擁有 DEMO-COM-001 與 TEST-COM-002）。
+* `npm start` 後 `curl http://localhost:3001/health` 回 `{"status":"ok","db":"connected"}`。
+* Newman：9 requests / 22 assertions / 0 failed（含 `Switch Company - No Membership` 回 403、`No Auth Header` 回 401）。
+
+6. 風險與防線 / 變更紀錄
+
+* 風險：pnpm/npm 混用導致依賴漂移、CI/同事環境不一致 → 防線：提交 lockfile、runbook 明確標注 `apps/api` 使用 npm，並以 newman 作回歸門檻。
+* 風險：手動測試打錯 port/路由造成誤判 → 防線：固定以 `apps/api/postman` + runbook 為 SoT；3000 明確識別為 hello 容器，API 使用 3001。
+* 變更紀錄：新增 `apps/api/**`（API skeleton、seed、migration、postman）、新增 `doc/runbooks/APP-01-AUTH-SKELETON.md`；驗收已完成並準備進行 git milestone 封存。
 
 * Title：10 Phase2C Replay 修復:SVC-2C-2A Tenant Closure Wave1：Composite FK 強制一致 + Verify Schema-Probed 修復
 * Date：2026-01-28
