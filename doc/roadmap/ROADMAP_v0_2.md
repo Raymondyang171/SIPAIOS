@@ -2,7 +2,7 @@
 > - **檔名**: `ROADMAP_v0_2.md`
 > - **內容版本**: v0.3 (Full Checklist View)
 > - **說明**: 此檔案內容為 v0.3，但沿用 v0_2 檔名以避免檔案增生。後續更新請直接修改此檔。
-> - **最後更新**: 2026-01-29 (Entry [13] 同步)
+> - **最後更新**: 2026-01-29 (Entry [15] 同步)
 
 ---
 
@@ -10,7 +10,7 @@
 
 * **版本**：v0.3 (Full Checklist View)
 * **日期**：2026-01-29
-* **基準**：Project Log Entry [13] (Gate 可攜性加固完成)
+* **基準**：Project Log Entry [15] (最小風險修補完成)
 * **說明**：
 * `[x]` = 已完成且驗證通過 (Done & Verified)
 * `[ ]` = 待執行 (To-Do)
@@ -76,6 +76,11 @@
 * *內容*：開發 `export-tenant.sh` 與 `import-tenant.sh`。
 * *驗收*：能將 Tenant A 打包成 ZIP，並在另一台乾淨機器還原。
 
+
+* [x] **INFRA-010: 依賴風險掃描與 Gate 策略 (Security Audit)** `[SVC-W4-1/W4-2]`
+* *內容*：建立 `make audit-api` 命令，產出 JSON 報告；定義 Gate Policy（WARN/BLOCK 規則）。
+* *驗收*：一條命令產出 audit 報告，runbook 說明為何 High 先不擋、何時要擋。
+* *文件*：`doc/runbooks/SVC-SECURITY-GATE-POLICY.md`
 
 
 ---
@@ -158,7 +163,7 @@
 
 ## 🎯 當前執行焦點 (Current Focus)
 
-根據 Entry [13] 的進度，我們完成了 Gate 可攜性加固 (SVC-W3-1)。
+根據 Entry [15] 的進度，我們完成了最小風險修補 (SVC-W4-3)。
 現在的**戰略決策**是：
 
 1. **優先級 P1**：**APP-006 & APP-007 (生產 API)**。
@@ -167,8 +172,10 @@
 2. **優先級 P2**：**APP-009 & APP-010 (前端啟動)**。
    * *原因*：有了 API 卻沒畫面，無法給非技術人員 Demo。
 
-3. **治理完成 (Entry [13])**：
+3. **治理完成 (Entry [15])**：
    * ✅ Gate 可攜性：`newman` 已納入專案依賴，`make gate-app-02` 不再依賴全域安裝。
+   * ✅ Security Gate：`make audit-api` 產出 JSON 報告，Gate Policy runbook 已建立。
+   * ✅ 最小風險修補：`bcrypt` 升級 5.1.1→6.0.0，漏洞 12→10（剩餘 waiver 已分類）。
 
 **給 Agent 的下一條指令建議：**
 

@@ -1,3 +1,109 @@
+Title：15 SVC-W4-3 最小風險修補（bcrypt 升級 + waiver 分類）
+Date：2026-01-29
+Stage：Pilot
+Phase：P2
+Status：Done
+Scope Impact：Deps / Security / Docs
+Related SVC：SVC-W4-3
+Next Owner：You / Claude(VSCode)
+Tags（可選）：bcrypt, npm-audit, security, waiver, non-breaking-fix
+
+1. 結論（已定案）
+
+* **bcrypt 5.1.1 → 6.0.0 升級成功**：移除 `@mapbox/node-pre-gyp` → `tar` 依賴鏈
+* **漏洞下降**：12 → 10（High: 7→5, Moderate: 5→5）
+* **Gate 驗證通過**：`make gate-app-02` PASS（14 requests, 35 assertions, 0 failed）
+* **剩餘 waiver 分類完成**：10 個漏洞全部來自 `newman`（devDependency）
+
+2. 本次確定方案邊界取捨
+
+* **只做不破壞相容性的修補**：bcrypt 6.0.0 API 相容，無 breaking change
+* **不使用 `npm audit fix --force`**：會降版 newman 到 v2.1.2（major breaking）
+* **剩餘漏洞掛 waiver**：已分類記錄於 `SVC-SECURITY-GATE-POLICY.md`
+
+3. 未決事項
+
+* 剩餘 10 個漏洞需等待 newman/postman-runtime 上游修復【待監控】
+* 2026-02-15 前回顧是否需要更換測試工具【可選】
+
+4. 下一步（1–3 個最小動作）
+
+* 提交 SVC-W4-3 commit（bcrypt 升級 + waiver 更新）
+* 監控 newman GitHub 是否發布修復版本
+* 繼續業務開發（APP-006/APP-007）
+
+5. 驗收錨點（可觀測結果）
+
+* `npm audit` 顯示 10 vulnerabilities（5 high, 5 moderate）
+* `make gate-app-02` PASS
+* `SVC-SECURITY-GATE-POLICY.md` 包含 Remediated 和 Waiver 兩個區塊
+
+6. 風險與防線 / 變更紀錄
+
+* 風險：bcrypt 6.0.0 API 不相容導致功能故障
+  * 防線：已通過 gate 驗證（bcrypt 用於 auth，login 測試通過）
+* 變更紀錄
+  * 修改：`apps/api/package.json`（bcrypt ^5.1.1 → ^6.0.0）
+  * 修改：`apps/api/package-lock.json`（移除 50 packages）
+  * 修改：`doc/runbooks/SVC-SECURITY-GATE-POLICY.md`（更新 waiver 分類）
+
+
+
+Title：14 SVC-W4-1/W4-2 API 依賴風險掃描落盤 + Pilot Gate 策略落地
+Date：2026-01-29
+Stage：Pilot
+Phase：P2
+Status：Done
+Scope Impact：Ops / Docs / Security
+Related SVC：SVC-W4-1, SVC-W4-2
+Next Owner：You / Claude(VSCode)
+Tags（可選）：audit, security, gate-policy, npm-audit, devDependencies, risk-acceptance
+
+1. 結論（已定案）
+
+* **SVC-W4-1 完成**：`make audit-api` 命令可產出 JSON 報告至 `artifacts/scan/api-audit/`
+* **SVC-W4-2 完成**：Gate Policy Runbook（SoT）已建立，定義 WARN/ALLOW 策略
+* **決策記錄**：當前 7 High + 5 Moderate 漏洞皆來自 `newman`（devDependency），已決定 **WARN 不 BLOCK**
+
+2. 本次確定方案邊界取捨
+
+* **Pilot 階段採 WARN/ALLOW**：Critical = BLOCK，High = WARN，Moderate/Low = ALLOW
+* **不強制 `npm audit fix --force`**：會導致 newman 降版至 v2.1.2（breaking change）
+* **風險接受條件**：僅限 devDependencies、受信任輸入、非生產路徑
+
+3. 未決事項
+
+* `newman` 上游何時修復 `postman-runtime` 依賴漏洞【待監控】
+* Go-Live 前是否要切換到替代測試工具（如 k6, artillery）【可選】
+* CI 是否要加入自動 gate check【待 CI 建立後實施】
+
+4. 下一步（1–3 個最小動作）
+
+* 定期執行 `make audit-api` 監控漏洞狀態（建議每週一次）
+* 2026-02-15 前回顧 Gate Policy，評估是否升級 WARN → BLOCK
+* 若 newman 發布修復版本，執行 `npm update newman` 並重新掃描
+
+5. 驗收錨點（可觀測結果）
+
+* `make audit-api` 產出完整報告（audit.json + audit-summary.txt + metadata.json）
+* `artifacts/scan/api-audit/latest/` symlink 指向最新掃描
+* `doc/runbooks/SVC-SECURITY-GATE-POLICY.md` 包含完整策略說明與風險接受記錄
+* 任何人照 runbook 讀取即知：「現在 high 為什麼先不擋、何時要擋」
+
+6. 風險與防線 / 變更紀錄
+
+* 風險：devDependency 漏洞被誤認為生產風險
+  * 防線：Runbook 明確標註「僅影響測試環境」與依賴路徑分析
+* 風險：長期忽視 WARN 導致安全債累積
+  * 防線：設定回顧日期（2026-02-15）與升級觸發條件
+* 變更紀錄
+  * 新增：`scripts/audit_api.sh`（audit 腳本）
+  * 新增：`make audit-api` target
+  * 新增：`artifacts/scan/api-audit/README.md`（解讀說明）
+  * 新增：`doc/runbooks/SVC-SECURITY-GATE-POLICY.md`（Gate Policy SoT）
+
+
+
 Title：13 SVC-W3-1 Gate Portability（Newman 本地依賴化）
 Date：2026-01-29
 Stage：Pilot

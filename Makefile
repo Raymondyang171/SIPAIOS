@@ -1,7 +1,7 @@
 # SIP AIOS - Development Makefile
 # One-click commands for common DB operations
 
-.PHONY: reset restore replay verify help gate-app-02
+.PHONY: reset restore replay verify help gate-app-02 audit-api
 
 # Default target
 help:
@@ -11,6 +11,7 @@ help:
 	@echo "  make replay      - Alias for reset"
 	@echo "  make verify      - Run Phase1 verify only"
 	@echo "  make gate-app-02 - APP-02 Gate: DB replay + seed + Newman (exit 0 = pass)"
+	@echo "  make audit-api   - SVC-W4-1: API dependency audit -> artifacts/scan/api-audit/"
 	@echo ""
 	@echo "Configuration (override via env):"
 	@echo "  DB_CONTAINER  (default: sipaios-postgres)"
@@ -42,3 +43,7 @@ verify:
 gate-app-02:
 	@echo "=== make gate-app-02: APP-02 Purchase Loop Gate ==="
 	@./scripts/gate_app02.sh
+
+# SVC-W4-1: API Dependency Audit Artifact
+audit-api:
+	@./scripts/audit_api.sh
