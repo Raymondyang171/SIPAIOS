@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# APP-02 Purchase Loop Gate
+# APP-02/03/04 Gate (Purchase Loop + Production MO + Backflush)
 # One-click: DB replay → seed → Newman Gate
 # Exit 0 only if all steps pass (Gatekeeper behavior)
 
@@ -16,6 +16,7 @@ STAGE2C="${ROOT_DIR}/scripts/db/02_replay_stage2c_company_scope_v1_0.sh"
 SEED_AUTH="${ROOT_DIR}/apps/api/seeds/001_auth_test_users.sql"
 SEED_PURCHASE="${ROOT_DIR}/apps/api/seeds/002_purchase_test_data.sql"
 SEED_MO="${ROOT_DIR}/apps/api/seeds/003_production_mo_data.sql"
+SEED_BACKFLUSH="${ROOT_DIR}/apps/api/seeds/004_backflush_data.sql"
 
 timestamp_now() {
   date -u +"%Y%m%dT%H%M%SZ"
@@ -57,13 +58,14 @@ if ! bash "$STAGE2C" 2>&1 | tee "$LOG_REPLAY"; then
 fi
 echo "[OK] DB replay completed"
 
-# ---- Step 2: APP-02/03 Seeds ----
+# ---- Step 2: APP-02/03/04 Seeds ----
 echo ""
-echo "[STEP 2/3] APP-02/03 Seeds"
+echo "[STEP 2/3] APP-02/03/04 Seeds"
 {
   run_psql_in_container "$SEED_AUTH"
   run_psql_in_container "$SEED_PURCHASE"
   run_psql_in_container "$SEED_MO"
+  run_psql_in_container "$SEED_BACKFLUSH"
 } 2>&1 | tee "$LOG_SEED"
 echo "[OK] Seeds completed"
 
