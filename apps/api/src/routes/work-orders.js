@@ -536,6 +536,121 @@ router.post('/production-reports', requireAuth, async (req, res) => {
 });
 
 /**
+ * GET /work-orders/:id/material-precheck
+ * Precheck material availability for a work order before production report
+ * Query: ?qty_produced=N (optional, defaults to 1)
+ * Response: { work_order_id, materials: [...], can_produce: boolean }
+ */
+router.get('/work-orders/:id/material-precheck', requireAuth, async (req, res) => {
+  const { id } = req.params;
+  const company_id = req.user.company_id;
+  const qty_produced = parseFloat(req.query.qty_produced) || 1;
+
+  try {
+    // 1. Verify work order exists and belongs to company
+    const woResult = await query(
+      `SELECT wo.id, wo.wo_no, wo.item_id, wo.planned_qty, wo.bom_version_id,
+              wo.site_id, wo.primary_warehouse_id, wo.status,
+              i.item_no as fg_item_no, i.name as fg_item_name
+       FROM work_orders wo
+       JOIN items i ON i.id = wo.item_id
+       WHERE wo.id = $1 AND wo.company_id = $2`,
+      [id, company_id]
+    );
+
+    if (woResult.rows.length === 0) {
+      return res.status(404).json({
+        error: 'NOT_FOUND',
+        message: 'Work order not found',
+      });
+    }
+
+    const wo = woResult.rows[0];
+
+    // 2. Get BOM lines for this work order
+    const bomResult = await query(
+      `SELECT bl.id, bl.line_no, bl.component_item_id, bl.qty_per, bl.uom_id, bl.scrap_factor,
+              i.item_no as component_item_no, i.name as component_item_name
+       FROM bom_lines bl
+       JOIN items i ON i.id = bl.component_item_id
+       WHERE bl.bom_version_id = $1
+       ORDER BY bl.line_no`,
+      [wo.bom_version_id]
+    );
+
+    if (bomResult.rows.length === 0) {
+      return res.json({
+        work_order_id: id,
+        wo_no: wo.wo_no,
+        qty_to_produce: qty_produced,
+        materials: [],
+        can_produce: true,
+        message: 'No BOM materials defined',
+      });
+    }
+
+    // 3. Check availability for each material
+    const materials = [];
+    let canProduce = true;
+
+    for (const bomLine of bomResult.rows) {
+      const qtyNeeded = qty_produced * parseFloat(bomLine.qty_per) * (1 + parseFloat(bomLine.scrap_factor));
+
+      // Get available inventory (same scope as backflush: company + site + warehouse + item)
+      const invResult = await query(
+        `SELECT ib.id, ib.lot_id, ib.qty, il.lot_code, il.received_at
+         FROM inventory_balances ib
+         JOIN inventory_lots il ON il.id = ib.lot_id
+         WHERE ib.company_id = $1
+           AND ib.site_id = $2
+           AND ib.warehouse_id = $3
+           AND ib.item_id = $4
+           AND ib.qty > 0
+         ORDER BY il.received_at ASC`,
+        [company_id, wo.site_id, wo.primary_warehouse_id, bomLine.component_item_id]
+      );
+
+      const totalAvailable = invResult.rows.reduce((sum, row) => sum + parseFloat(row.qty), 0);
+      const isSufficient = totalAvailable >= qtyNeeded;
+
+      if (!isSufficient) {
+        canProduce = false;
+      }
+
+      materials.push({
+        item_id: bomLine.component_item_id,
+        item_no: bomLine.component_item_no,
+        item_name: bomLine.component_item_name,
+        qty_per: parseFloat(bomLine.qty_per),
+        scrap_factor: parseFloat(bomLine.scrap_factor),
+        qty_needed: qtyNeeded,
+        qty_available: totalAvailable,
+        status: isSufficient ? 'ok' : 'insufficient',
+        available_lots: invResult.rows.map(lot => ({
+          lot_id: lot.lot_id,
+          lot_code: lot.lot_code,
+          qty: parseFloat(lot.qty),
+        })),
+      });
+    }
+
+    return res.json({
+      work_order_id: id,
+      wo_no: wo.wo_no,
+      qty_to_produce: qty_produced,
+      materials,
+      can_produce: canProduce,
+    });
+  } catch (err) {
+    console.error('Material Precheck error:', err);
+    return res.status(500).json({
+      error: 'INTERNAL_ERROR',
+      message: 'An internal error occurred',
+    });
+  }
+});
+
+/**
  * GET /production-reports/:id
  * Get production report with traceability info
  * Response: { id, work_order_id, fg_lot, consumed_materials, ... }
