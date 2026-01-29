@@ -525,9 +525,11 @@
                   "",
                   "pm.test('Inventory balance shows received qty', function () {",
                   "    var jsonData = pm.response.json();",
-                  "    var balance = jsonData.balances.find(b => b.item_id === pm.environment.get('test_item_id'));",
-                  "    pm.expect(balance).to.not.be.undefined;",
-                  "    pm.expect(parseFloat(balance.qty)).to.be.at.least(50);",
+                  "    // Sum all balances for the test item (may have multiple lots)",
+                  "    var itemBalances = jsonData.balances.filter(b => b.item_id === pm.environment.get('test_item_id'));",
+                  "    pm.expect(itemBalances.length).to.be.at.least(1);",
+                  "    var totalQty = itemBalances.reduce((sum, b) => sum + parseFloat(b.qty), 0);",
+                  "    pm.expect(totalQty).to.be.at.least(50);",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -910,6 +912,255 @@
               "raw": "{{base_url}}/work-orders",
               "host": ["{{base_url}}"],
               "path": ["work-orders"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "APP-04 Backflush",
+      "item": [
+        {
+          "name": "Create Production Report - Success",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response has production report id', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.environment.set('created_production_report_id', jsonData.id);",
+                  "});",
+                  "",
+                  "pm.test('Response has FG lot info', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('fg_lot');",
+                  "    pm.expect(jsonData.fg_lot).to.have.property('id');",
+                  "    pm.expect(jsonData.fg_lot).to.have.property('lot_code');",
+                  "});",
+                  "",
+                  "pm.test('Response has consumed materials trace', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('consumed_materials');",
+                  "    pm.expect(jsonData.consumed_materials).to.be.an('array');",
+                  "    pm.expect(jsonData.consumed_materials.length).to.be.at.least(1);",
+                  "});",
+                  "",
+                  "pm.test('Consumed materials have lot allocations (FIFO trace)', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    var firstMaterial = jsonData.consumed_materials[0];",
+                  "    pm.expect(firstMaterial).to.have.property('allocations');",
+                  "    pm.expect(firstMaterial.allocations).to.be.an('array');",
+                  "    pm.expect(firstMaterial.allocations.length).to.be.at.least(1);",
+                  "    pm.expect(firstMaterial.allocations[0]).to.have.property('lot_id');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"work_order_id\": \"{{test_released_mo_id}}\",\n    \"qty_produced\": 20,\n    \"note\": \"Test production report from Newman\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/production-reports",
+              "host": ["{{base_url}}"],
+              "path": ["production-reports"]
+            }
+          }
+        },
+        {
+          "name": "Get Production Report - Trace Lookup",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has traceability info', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('wo_no');",
+                  "    pm.expect(jsonData).to.have.property('fg_lot');",
+                  "    pm.expect(jsonData).to.have.property('consumed_materials');",
+                  "});",
+                  "",
+                  "pm.test('Can trace from FG lot to raw material lots', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.fg_lot.lot_code).to.include('FG-');",
+                  "    var firstMaterial = jsonData.consumed_materials[0];",
+                  "    pm.expect(firstMaterial.allocations[0].lot_code).to.include('LOT-RAW-');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/production-reports/{{created_production_report_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["production-reports", "{{created_production_report_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Create Production Report - Insufficient Stock (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Error is INSUFFICIENT_STOCK', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.eql('INSUFFICIENT_STOCK');",
+                  "});",
+                  "",
+                  "pm.test('Response has details with qty info', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('details');",
+                  "    pm.expect(jsonData.details).to.have.property('qty_needed');",
+                  "    pm.expect(jsonData.details).to.have.property('qty_available');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"work_order_id\": \"{{test_insufficient_mo_id}}\",\n    \"qty_produced\": 100,\n    \"note\": \"This should fail due to insufficient stock\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/production-reports",
+              "host": ["{{base_url}}"],
+              "path": ["production-reports"]
+            }
+          }
+        },
+        {
+          "name": "Create Production Report - No Auth (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "pm.test('Error is AUTH_REQUIRED', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.eql('AUTH_REQUIRED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"work_order_id\": \"{{test_released_mo_id}}\",\n    \"qty_produced\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/production-reports",
+              "host": ["{{base_url}}"],
+              "path": ["production-reports"]
+            }
+          }
+        },
+        {
+          "name": "Create Production Report - Invalid MO (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test('Error is NOT_FOUND', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.eql('NOT_FOUND');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"work_order_id\": \"00000000-0000-0000-0000-000000000999\",\n    \"qty_produced\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/production-reports",
+              "host": ["{{base_url}}"],
+              "path": ["production-reports"]
             }
           }
         }
