@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "SIP AIOS API",
-    "description": "SIP AIOS API - APP-01 Auth Skeleton + APP-02 Purchase Loop",
+    "description": "SIP AIOS API - APP-01 Auth Skeleton + APP-02 Purchase Loop + APP-03 Production MO",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -634,6 +634,282 @@
               "raw": "{{base_url}}/purchase-orders",
               "host": ["{{base_url}}"],
               "path": ["purchase-orders"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "APP-03 Production MO",
+      "item": [
+        {
+          "name": "Create MO - Success",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response has MO id and wo_no', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('wo_no');",
+                  "    pm.expect(jsonData.status).to.eql('draft');",
+                  "    pm.environment.set('created_mo_id', jsonData.id);",
+                  "});",
+                  "",
+                  "pm.test('Response has bom_version_id (locked)', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('bom_version_id');",
+                  "    pm.expect(jsonData.bom_version_id).to.eql(pm.environment.get('test_bom_version_id'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"site_id\": \"{{test_site_id}}\",\n    \"item_id\": \"{{test_fg_item_id}}\",\n    \"planned_qty\": 10,\n    \"uom_id\": \"{{test_uom_id}}\",\n    \"bom_version_id\": \"{{test_bom_version_id}}\",\n    \"primary_warehouse_id\": \"{{test_warehouse_id}}\",\n    \"note\": \"Test MO from Newman\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/work-orders",
+              "host": ["{{base_url}}"],
+              "path": ["work-orders"]
+            }
+          }
+        },
+        {
+          "name": "Get MO - Verify bom_version_id locked",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has bom_version_id (consistent with creation)', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('bom_version_id');",
+                  "    pm.expect(jsonData.bom_version_id).to.eql(pm.environment.get('test_bom_version_id'));",
+                  "});",
+                  "",
+                  "pm.test('Response has item info', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('item_id');",
+                  "    pm.expect(jsonData).to.have.property('item_no');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/work-orders/{{created_mo_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["work-orders", "{{created_mo_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Create MO - Missing bom_version_id (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Error is VALIDATION_ERROR', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.eql('VALIDATION_ERROR');",
+                  "});",
+                  "",
+                  "pm.test('Message mentions bom_version_id', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('bom_version_id');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"site_id\": \"{{test_site_id}}\",\n    \"item_id\": \"{{test_fg_item_id}}\",\n    \"planned_qty\": 10,\n    \"uom_id\": \"{{test_uom_id}}\",\n    \"primary_warehouse_id\": \"{{test_warehouse_id}}\",\n    \"note\": \"Test MO without bom_version_id\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/work-orders",
+              "host": ["{{base_url}}"],
+              "path": ["work-orders"]
+            }
+          }
+        },
+        {
+          "name": "Create MO - Invalid bom_version_id (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "pm.test('Error is FORBIDDEN', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.eql('FORBIDDEN');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"site_id\": \"{{test_site_id}}\",\n    \"item_id\": \"{{test_fg_item_id}}\",\n    \"planned_qty\": 10,\n    \"uom_id\": \"{{test_uom_id}}\",\n    \"bom_version_id\": \"00000000-0000-0000-0000-000000000999\",\n    \"primary_warehouse_id\": \"{{test_warehouse_id}}\",\n    \"note\": \"Test MO with non-existent bom_version_id\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/work-orders",
+              "host": ["{{base_url}}"],
+              "path": ["work-orders"]
+            }
+          }
+        },
+        {
+          "name": "Create MO - Cross-tenant bom_version_id (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "pm.test('Error is FORBIDDEN', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.eql('FORBIDDEN');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"site_id\": \"{{test_site_id}}\",\n    \"item_id\": \"{{test_fg_item_id}}\",\n    \"planned_qty\": 10,\n    \"uom_id\": \"{{test_uom_id}}\",\n    \"bom_version_id\": \"{{other_company_bom_version_id}}\",\n    \"primary_warehouse_id\": \"{{test_warehouse_id}}\",\n    \"note\": \"Test MO with cross-tenant bom_version_id\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/work-orders",
+              "host": ["{{base_url}}"],
+              "path": ["work-orders"]
+            }
+          }
+        },
+        {
+          "name": "List MOs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has work_orders array', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('work_orders');",
+                  "    pm.expect(jsonData.work_orders).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Created MO is in list with bom_version_id', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    var createdMo = jsonData.work_orders.find(wo => wo.id === pm.environment.get('created_mo_id'));",
+                  "    pm.expect(createdMo).to.not.be.undefined;",
+                  "    pm.expect(createdMo.bom_version_id).to.eql(pm.environment.get('test_bom_version_id'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/work-orders",
+              "host": ["{{base_url}}"],
+              "path": ["work-orders"]
             }
           }
         }
