@@ -3,6 +3,7 @@ import { config } from './config.js';
 import { pool } from './db.js';
 import authRoutes from './routes/auth.js';
 import purchaseRoutes from './routes/purchase.js';
+import workOrderRoutes from './routes/work-orders.js';
 
 const app = express();
 
@@ -34,6 +35,9 @@ app.use(authRoutes);
 
 // Purchase routes (PO, GRN, Inventory)
 app.use(purchaseRoutes);
+
+// Work Order routes (MO)
+app.use(workOrderRoutes);
 
 // 404 handler
 app.use((req, res) => {
