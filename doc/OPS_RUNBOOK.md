@@ -58,6 +58,36 @@
 
 ---
 
+## 6. 發布檢查 (Release Checklist)
+
+### Security Gate Policy (npm audit)
+
+此規則由自動化腳本 `make audit-api` 判定，決定是否允許佈署：
+
+| 狀態 | Exit Code | 條件 | 留痕 |
+|------|-----------|------|------|
+| **FAIL** | 2 | `critical_total > 0` OR (`prod_scope.mode != "dev_only"` AND `high_total > 0`) | 阻擋佈署 |
+| **WARN** | 0 | `prod_scope.mode == "dev_only"` AND `high_total > 0` | `metadata.json` 記錄 `status: "WARN"` |
+| **PASS** | 0 | 其他情況 | — |
+
+**判斷邏輯說明：**
+1. **FAIL (Exit 2)**:
+   - `critical_total > 0`
+   - OR (`prod_scope.mode != "dev_only"` AND `high_total > 0`)
+   - 意即：有任何 critical 漏洞，或生產依賴中有 high 漏洞，則禁止佈署
+2. **WARN (Exit 0，留痕)**:
+   - `prod_scope.mode == "dev_only"` AND `high_total > 0`
+   - 意即：僅開發依賴有 high 漏洞時，允許上線但透過 `metadata.json` 的 `status: "WARN"` 留痕
+3. **PASS (Exit 0)**:
+   - 其他情況（無 critical、無 high 或漏洞已清除）
+
+**相關產出物：**
+- `artifacts/scan/api-audit/latest/metadata.json` - 包含 `prod_scope.mode` 與漏洞統計
+- `artifacts/scan/api-audit/latest/audit.json` - 完整 npm audit 報告
+- `artifacts/scan/api-audit/latest/audit-prod.json` - 僅生產依賴的報告
+
+---
+
 # SOP 對照區（與 OBSERVABILITY.md 一一對應）
 
 ## SOP-A：Disk High（>80%）
