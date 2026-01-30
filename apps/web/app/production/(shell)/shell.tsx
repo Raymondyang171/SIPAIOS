@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const navItems = [
   { label: "Home", href: "/production", icon: "H" },
   { label: "Work Orders", href: "/production/work-orders", icon: "W" },
+  { label: "Purchase", href: "/purchase/orders", icon: "P" },
 ];
 
 export function ProductionShell({ children }: { children: React.ReactNode }) {

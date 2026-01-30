@@ -333,4 +333,282 @@ router.get('/inventory-balances', requireAuth, async (req, res) => {
   }
 });
 
+/**
+ * GET /purchase-orders
+ * Query: ?status=xxx&supplier_id=xxx
+ * Response: { purchase_orders: [...], count: number }
+ */
+router.get('/purchase-orders', requireAuth, async (req, res) => {
+  const company_id = req.user.company_id;
+  const { status, supplier_id } = req.query;
+
+  try {
+    let sql = `
+      SELECT po.id, po.po_no, po.status, po.order_date, po.note, po.created_at,
+             po.supplier_id, s.name as supplier_name, s.code as supplier_code,
+             po.site_id, si.code as site_code, si.name as site_name
+      FROM purchase_orders po
+      LEFT JOIN suppliers s ON s.id = po.supplier_id
+      LEFT JOIN sites si ON si.id = po.site_id
+      WHERE po.company_id = $1
+    `;
+    const params = [company_id];
+    let paramIdx = 2;
+
+    if (status) {
+      sql += ` AND po.status = $${paramIdx}`;
+      params.push(status);
+      paramIdx++;
+    }
+
+    if (supplier_id) {
+      sql += ` AND po.supplier_id = $${paramIdx}`;
+      params.push(supplier_id);
+      paramIdx++;
+    }
+
+    sql += ' ORDER BY po.created_at DESC';
+
+    const result = await query(sql, params);
+
+    return res.json({
+      purchase_orders: result.rows,
+      count: result.rows.length,
+    });
+  } catch (err) {
+    console.error('List POs error:', err);
+    return res.status(500).json({
+      error: 'INTERNAL_ERROR',
+      message: 'An internal error occurred',
+    });
+  }
+});
+
+/**
+ * GET /purchase-orders/:id
+ * Response: { id, po_no, status, lines: [...], ... }
+ */
+router.get('/purchase-orders/:id', requireAuth, async (req, res) => {
+  const { id } = req.params;
+  const company_id = req.user.company_id;
+
+  try {
+    // Get PO header with supplier and site info
+    const poResult = await query(
+      `SELECT po.id, po.po_no, po.status, po.order_date, po.note, po.created_at,
+              po.supplier_id, s.name as supplier_name, s.code as supplier_code,
+              po.site_id, si.code as site_code, si.name as site_name
+       FROM purchase_orders po
+       LEFT JOIN suppliers s ON s.id = po.supplier_id
+       LEFT JOIN sites si ON si.id = po.site_id
+       WHERE po.id = $1 AND po.company_id = $2`,
+      [id, company_id]
+    );
+
+    if (poResult.rows.length === 0) {
+      return res.status(404).json({
+        error: 'NOT_FOUND',
+        message: 'Purchase order not found',
+      });
+    }
+
+    const po = poResult.rows[0];
+
+    // Get PO lines with item info
+    const linesResult = await query(
+      `SELECT pol.id, pol.line_no, pol.item_id, pol.qty, pol.uom_id, pol.unit_price, pol.note,
+              i.item_no, i.name as item_name,
+              u.code as uom_code, u.name as uom_name
+       FROM purchase_order_lines pol
+       LEFT JOIN items i ON i.id = pol.item_id
+       LEFT JOIN uoms u ON u.id = pol.uom_id
+       WHERE pol.purchase_order_id = $1
+       ORDER BY pol.line_no`,
+      [id]
+    );
+
+    // Get related GRNs
+    const grnsResult = await query(
+      `SELECT gr.id, gr.grn_no, gr.status, gr.received_at, gr.created_at
+       FROM goods_receipts gr
+       WHERE gr.purchase_order_id = $1
+       ORDER BY gr.created_at DESC`,
+      [id]
+    );
+
+    return res.json({
+      ...po,
+      lines: linesResult.rows,
+      goods_receipts: grnsResult.rows,
+    });
+  } catch (err) {
+    console.error('Get PO error:', err);
+    return res.status(500).json({
+      error: 'INTERNAL_ERROR',
+      message: 'An internal error occurred',
+    });
+  }
+});
+
+/**
+ * GET /suppliers
+ * Response: { suppliers: [...], count: number }
+ */
+router.get('/suppliers', requireAuth, async (req, res) => {
+  const company_id = req.user.company_id;
+
+  try {
+    const result = await query(
+      `SELECT id, code, name FROM suppliers WHERE company_id = $1 ORDER BY code`,
+      [company_id]
+    );
+
+    return res.json({
+      suppliers: result.rows,
+      count: result.rows.length,
+    });
+  } catch (err) {
+    console.error('List suppliers error:', err);
+    return res.status(500).json({
+      error: 'INTERNAL_ERROR',
+      message: 'An internal error occurred',
+    });
+  }
+});
+
+/**
+ * GET /sites
+ * Response: { sites: [...], count: number }
+ */
+router.get('/sites', requireAuth, async (req, res) => {
+  const company_id = req.user.company_id;
+
+  try {
+    const result = await query(
+      `SELECT id, code, name FROM sites WHERE company_id = $1 ORDER BY code`,
+      [company_id]
+    );
+
+    return res.json({
+      sites: result.rows,
+      count: result.rows.length,
+    });
+  } catch (err) {
+    console.error('List sites error:', err);
+    return res.status(500).json({
+      error: 'INTERNAL_ERROR',
+      message: 'An internal error occurred',
+    });
+  }
+});
+
+/**
+ * GET /items
+ * Query: ?type=raw|fg
+ * Response: { items: [...], count: number }
+ */
+router.get('/items', requireAuth, async (req, res) => {
+  const company_id = req.user.company_id;
+  const { type } = req.query;
+
+  try {
+    let sql = `SELECT id, item_no, name, item_type FROM items WHERE company_id = $1`;
+    const params = [company_id];
+
+    if (type) {
+      const rawType = Array.isArray(type) ? type.join(',') : String(type);
+      const normalizedTypes = rawType
+        .split(',')
+        .map((value) => value.trim().toLowerCase())
+        .filter(Boolean)
+        .map((value) => (value === 'raw' ? 'rm' : value));
+      if (normalizedTypes.length > 0) {
+        sql += ` AND LOWER(item_type::text) = ANY($2)`;
+        params.push(normalizedTypes);
+      }
+    }
+
+    sql += ' ORDER BY item_no';
+
+    const result = await query(sql, params);
+
+    return res.json({
+      items: result.rows,
+      count: result.rows.length,
+    });
+  } catch (err) {
+    console.error('List items error:', err);
+    return res.status(500).json({
+      error: 'INTERNAL_ERROR',
+      message: 'An internal error occurred',
+    });
+  }
+});
+
+/**
+ * GET /uoms
+ * Response: { uoms: [...], count: number }
+ */
+router.get('/uoms', requireAuth, async (req, res) => {
+  const company_id = req.user.company_id;
+
+  try {
+    const result = await query(
+      `SELECT id, code, name FROM uoms WHERE company_id = $1 ORDER BY code`,
+      [company_id]
+    );
+
+    return res.json({
+      uoms: result.rows,
+      count: result.rows.length,
+    });
+  } catch (err) {
+    console.error('List uoms error:', err);
+    return res.status(500).json({
+      error: 'INTERNAL_ERROR',
+      message: 'An internal error occurred',
+    });
+  }
+});
+
+/**
+ * GET /warehouses
+ * Query: ?site_id=xxx
+ * Response: { warehouses: [...], count: number }
+ */
+router.get('/warehouses', requireAuth, async (req, res) => {
+  const company_id = req.user.company_id;
+  const { site_id } = req.query;
+
+  try {
+    let sql = `
+      SELECT w.id, w.code, w.name, w.site_id, s.code as site_code
+      FROM warehouses w
+      LEFT JOIN sites s ON s.id = w.site_id
+      WHERE s.company_id = $1
+    `;
+    const params = [company_id];
+
+    if (site_id) {
+      sql += ` AND w.site_id = $2`;
+      params.push(site_id);
+    }
+
+    sql += ' ORDER BY w.code';
+
+    const result = await query(sql, params);
+
+    return res.json({
+      warehouses: result.rows,
+      count: result.rows.length,
+    });
+  } catch (err) {
+    console.error('List warehouses error:', err);
+    return res.status(500).json({
+      error: 'INTERNAL_ERROR',
+      message: 'An internal error occurred',
+    });
+  }
+});
+
 export default router;
