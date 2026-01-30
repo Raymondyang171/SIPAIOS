@@ -1,0 +1,51 @@
+import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
+
+export async function GET(request: NextRequest) {
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+  if (!apiBase) {
+    return NextResponse.json(
+      { error: "API URL not configured", items: [] },
+      { status: 503 }
+    );
+  }
+
+  const cookieStore = await cookies();
+  const token = cookieStore.get("auth_token")?.value;
+
+  const { searchParams } = new URL(request.url);
+  const type = searchParams.get("type");
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    const headers: HeadersInit = {};
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const url = new URL(`${apiBase}/items`);
+    if (type) {
+      url.searchParams.set("type", type);
+    }
+
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers,
+      cache: "no-store",
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+    const data = await response.json();
+
+    return NextResponse.json(data, { status: response.status });
+  } catch {
+    return NextResponse.json(
+      { error: "Cannot connect to API", items: [] },
+      { status: 503 }
+    );
+  }
+}

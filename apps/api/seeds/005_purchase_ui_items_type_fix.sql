@@ -1,62 +1,111 @@
--- Seed: Fix item_type contract for Purchase UI demo data
--- Ensures FG-001 uses item_type = 'fg' and aligns raw material item_type when possible
+-- SIP AIOS Demo Seed Fix: Align demo items.item_type to fg/rm for Purchase UI
+-- Purpose: Ensure /items?type=fg,rm returns demo items (Create PO dropdown not empty)
+-- Scope: Data-only update (no schema/migration). Safe to re-run.
 
 BEGIN;
 
 DO $$
 DECLARE
-  demo_company_id uuid := '9b8444cb-d8cb-58d7-8322-22d5c95892a1';
-  item_type_udt text;
-  item_type_data_type text;
-  has_rm boolean := false;
-  updated_fg int;
-  updated_rm int;
+  col_udt text;
+  is_enum boolean;
+  has_fg boolean;
+  has_rm boolean;
 BEGIN
-  SELECT data_type, udt_name
-  INTO item_type_data_type, item_type_udt
+  SELECT udt_name INTO col_udt
   FROM information_schema.columns
   WHERE table_schema = 'public'
     AND table_name = 'items'
     AND column_name = 'item_type';
 
-  IF item_type_data_type IS NULL THEN
-    RAISE NOTICE 'items.item_type column not found; skipping item_type alignment';
-    RETURN;
+  IF col_udt IS NULL THEN
+    RAISE EXCEPTION 'Demo seed fix aborted: public.items.item_type column not found.';
   END IF;
 
-  IF item_type_data_type = 'USER-DEFINED' THEN
+  SELECT EXISTS (
+    SELECT 1
+    FROM pg_type t
+    WHERE t.typname = col_udt
+      AND t.typtype = 'e'
+  ) INTO is_enum;
+
+  IF is_enum THEN
     SELECT EXISTS (
       SELECT 1
-      FROM pg_type t
-      JOIN pg_enum e ON e.enumtypid = t.oid
-      WHERE t.typname = item_type_udt
+      FROM pg_enum e
+      JOIN pg_type t ON t.oid = e.enumtypid
+      WHERE t.typname = col_udt
+        AND e.enumlabel = 'fg'
+    ) INTO has_fg;
+
+    SELECT EXISTS (
+      SELECT 1
+      FROM pg_enum e
+      JOIN pg_type t ON t.oid = e.enumtypid
+      WHERE t.typname = col_udt
+        AND e.enumlabel = 'rm'
+    ) INTO has_rm;
+
+    IF NOT has_fg THEN
+      RAISE EXCEPTION 'Demo seed fix aborted: enum type % missing value fg.', col_udt;
+    END IF;
+    IF NOT has_rm THEN
+      RAISE NOTICE 'Demo seed fix: enum type % missing value rm. Skipping RM updates; FG update will proceed.', col_udt;
+    END IF;
+  END IF;
+END $$;
+
+-- FG demo item
+UPDATE public.items
+SET item_type = 'fg'
+WHERE item_no = 'FG-001';
+
+-- RM demo items
+DO $$
+DECLARE
+  col_udt text;
+  is_enum boolean;
+  has_rm boolean;
+BEGIN
+  SELECT udt_name INTO col_udt
+  FROM information_schema.columns
+  WHERE table_schema = 'public'
+    AND table_name = 'items'
+    AND column_name = 'item_type';
+
+  IF col_udt IS NULL THEN
+    RAISE EXCEPTION 'Demo seed fix aborted: public.items.item_type column not found.';
+  END IF;
+
+  SELECT EXISTS (
+    SELECT 1
+    FROM pg_type t
+    WHERE t.typname = col_udt
+      AND t.typtype = 'e'
+  ) INTO is_enum;
+
+  IF is_enum THEN
+    SELECT EXISTS (
+      SELECT 1
+      FROM pg_enum e
+      JOIN pg_type t ON t.oid = e.enumtypid
+      WHERE t.typname = col_udt
         AND e.enumlabel = 'rm'
     ) INTO has_rm;
   ELSE
     has_rm := true;
   END IF;
 
-  UPDATE public.items
-  SET item_type = 'fg'
-  WHERE company_id = demo_company_id
-    AND item_no = 'FG-001';
-  GET DIAGNOSTICS updated_fg = ROW_COUNT;
-  IF updated_fg = 0 THEN
-    RAISE NOTICE 'No FG-001 found for demo company; nothing to update';
-  END IF;
-
   IF has_rm THEN
     UPDATE public.items
     SET item_type = 'rm'
-    WHERE company_id = demo_company_id
-      AND item_no = 'ITEM-001';
-    GET DIAGNOSTICS updated_rm = ROW_COUNT;
-    IF updated_rm = 0 THEN
-      RAISE NOTICE 'No ITEM-001 found for demo company; rm alignment skipped';
-    END IF;
-  ELSE
-    RAISE NOTICE 'item_type enum does not contain rm; skip rm alignment';
+    WHERE item_no IN ('ITEM-001', 'DEMO-ITE-001');
   END IF;
 END $$;
+
+-- Verification
+SELECT item_no, name, item_type
+FROM public.items
+WHERE item_no IN ('FG-001', 'ITEM-001', 'DEMO-ITE-001')
+ORDER BY item_no;
 
 COMMIT;
