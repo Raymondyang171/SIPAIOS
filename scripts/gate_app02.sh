@@ -120,6 +120,15 @@ if [[ $NEWMAN_EXIT -eq 0 ]]; then
   echo "gate_result=PASS" | tee -a "$LOG_SUMMARY"
   echo ""
   echo "[GATE PASS] APP-02 Purchase Loop gate passed"
+
+  # SVC-OPS-013: Sync snapshot to artifacts (non-blocking)
+  SYNC_SCRIPT="$ROOT_DIR/scripts/sync_snapshot_to_artifacts.sh"
+  if [[ -x "$SYNC_SCRIPT" ]]; then
+    echo ""
+    echo "[POST-GATE] Syncing snapshot to artifacts..."
+    bash "$SYNC_SCRIPT" || true
+  fi
+
   exit 0
 else
   echo "newman_gate=FAIL" | tee -a "$LOG_SUMMARY"
