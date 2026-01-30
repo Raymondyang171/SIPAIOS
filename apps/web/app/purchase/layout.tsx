@@ -4,9 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navItems = [
-  { label: "Home", href: "/production", icon: "H" },
+  { label: "Dashboard", href: "/production/dashboard", icon: "D" },
   { label: "Work Orders", href: "/production/work-orders", icon: "W" },
   { label: "Purchase", href: "/purchase/orders", icon: "P" },
+  { label: "Inventory", href: "/production/inventory", icon: "I" },
+  { label: "Reports", href: "/production/reports", icon: "R" },
+  { label: "Master Data", href: "/production/master-data", icon: "M" },
 ];
 
 export default function PurchaseLayout({
