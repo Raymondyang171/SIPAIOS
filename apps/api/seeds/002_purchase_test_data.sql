@@ -8,10 +8,10 @@ BEGIN;
 -- UUID scheme: 00000000-0000-0000-0000-0000000000XX
 --   001 = uom, 101-102 = supplier, 201-202 = site, 301 = warehouse, 401 = item
 
--- UOM: PCS (piece) - uoms table has no company_id, uses code as unique key
-INSERT INTO public.uoms (id, code, name)
-VALUES ('00000000-0000-0000-0000-000000000001', 'PCS', 'Piece')
-ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name;
+-- UOM: PCS (piece) - uoms table has company_id, unique key is (company_id, code)
+INSERT INTO public.uoms (id, company_id, code, name)
+VALUES ('00000000-0000-0000-0000-000000000001', '9b8444cb-d8cb-58d7-8322-22d5c95892a1', 'PCS', 'Piece')
+ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
 
 -- Site: MAIN site for DEMO company
 INSERT INTO public.sites (id, company_id, code, name)

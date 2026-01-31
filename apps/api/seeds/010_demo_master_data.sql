@@ -21,21 +21,23 @@ END $$;
 
 -- ============================================================
 -- SUPPLIERS (3 records)
+-- Fixed UUIDs for test compatibility (Postman expects test_supplier_id = 00000000-0000-0000-0000-000000000101)
 -- ============================================================
 
-INSERT INTO public.suppliers (company_id, code, name)
+INSERT INTO public.suppliers (id, company_id, code, name)
 SELECT
+  v.id::uuid,
   c.id,
   v.code,
   v.name
 FROM (VALUES
-  ('SUP-001', 'Alpha Materials Co.'),
-  ('SUP-002', 'Beta Components Ltd.'),
-  ('SUP-003', 'Gamma Packaging Inc.')
-) AS v(code, name)
+  ('00000000-0000-0000-0000-000000000101', 'SUP-001', 'Alpha Materials Co.'),
+  ('00000000-0000-0000-0000-000000000111', 'SUP-002', 'Beta Components Ltd.'),
+  ('00000000-0000-0000-0000-000000000112', 'SUP-003', 'Gamma Packaging Inc.')
+) AS v(id, code, name)
 CROSS JOIN public.companies c
 WHERE c.code = 'DEMO-COM-001'
-ON CONFLICT (company_id, code) DO UPDATE SET
+ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name;
 
 -- ============================================================
@@ -124,51 +126,53 @@ ON CONFLICT (company_id, code) DO UPDATE SET
 
 -- ============================================================
 -- ITEMS (10 records: 5 FG + 5 RM/Material)
--- Items reference UOMs by code lookup (not hardcoded ID)
+-- Fixed UUIDs for test compatibility (Postman expects test_fg_item_id = 00000000-0000-0000-0000-000000000501)
 -- ============================================================
 
--- FG Items (5 records)
-INSERT INTO public.items (company_id, item_no, name, item_type, base_uom_id)
+-- FG Items (5 records) - using fixed UUIDs
+INSERT INTO public.items (id, company_id, item_no, name, item_type, base_uom_id)
 SELECT
+  v.id::uuid,
   c.id,
   v.item_no,
   v.name,
   'fg'::item_type,
   u.id
 FROM (VALUES
-  ('FG-001', 'Finished Product Alpha', 'PCS'),
-  ('FG-002', 'Finished Product Beta', 'PCS'),
-  ('FG-003', 'Assembly Unit Gamma', 'SET'),
-  ('FG-004', 'Module Delta', 'PCS'),
-  ('FG-005', 'Package Set Epsilon', 'BOX')
-) AS v(item_no, name, uom_code)
+  ('00000000-0000-0000-0000-000000000501', 'FG-001', 'Finished Product Alpha', 'PCS'),
+  ('00000000-0000-0000-0000-000000000512', 'FG-002', 'Finished Product Beta', 'PCS'),
+  ('00000000-0000-0000-0000-000000000513', 'FG-003', 'Assembly Unit Gamma', 'SET'),
+  ('00000000-0000-0000-0000-000000000514', 'FG-004', 'Module Delta', 'PCS'),
+  ('00000000-0000-0000-0000-000000000515', 'FG-005', 'Package Set Epsilon', 'BOX')
+) AS v(id, item_no, name, uom_code)
 CROSS JOIN public.companies c
 JOIN public.uoms u ON u.company_id = c.id AND u.code = v.uom_code
 WHERE c.code = 'DEMO-COM-001'
-ON CONFLICT (company_id, item_no) DO UPDATE SET
+ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name,
   item_type = EXCLUDED.item_type,
   base_uom_id = EXCLUDED.base_uom_id;
 
--- RM/Material Items (5 records)
-INSERT INTO public.items (company_id, item_no, name, item_type, base_uom_id)
+-- RM/Material Items (5 records) - using fixed UUIDs
+INSERT INTO public.items (id, company_id, item_no, name, item_type, base_uom_id)
 SELECT
+  v.id::uuid,
   c.id,
   v.item_no,
   v.name,
   'material'::item_type,
   u.id
 FROM (VALUES
-  ('RM-001', 'Raw Material Steel', 'KG'),
-  ('RM-002', 'Raw Material Copper', 'KG'),
-  ('RM-003', 'Component Board', 'PCS'),
-  ('RM-004', 'Wire Cable', 'MTR'),
-  ('RM-005', 'Packaging Box', 'BOX')
-) AS v(item_no, name, uom_code)
+  ('00000000-0000-0000-0000-000000000521', 'RM-001', 'Raw Material Steel', 'KG'),
+  ('00000000-0000-0000-0000-000000000522', 'RM-002', 'Raw Material Copper', 'KG'),
+  ('00000000-0000-0000-0000-000000000523', 'RM-003', 'Component Board', 'PCS'),
+  ('00000000-0000-0000-0000-000000000524', 'RM-004', 'Wire Cable', 'MTR'),
+  ('00000000-0000-0000-0000-000000000525', 'RM-005', 'Packaging Box', 'BOX')
+) AS v(id, item_no, name, uom_code)
 CROSS JOIN public.companies c
 JOIN public.uoms u ON u.company_id = c.id AND u.code = v.uom_code
 WHERE c.code = 'DEMO-COM-001'
-ON CONFLICT (company_id, item_no) DO UPDATE SET
+ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name,
   item_type = EXCLUDED.item_type,
   base_uom_id = EXCLUDED.base_uom_id;

@@ -71,15 +71,15 @@ API_PID=$!
 
 info "API started with PID ${API_PID}, waiting for ready..."
 
-# Wait for API to be ready (max 15 seconds)
-MAX_WAIT=15
+# Wait for API to be ready (max 30 seconds - allow more time after full replay)
+MAX_WAIT=30
 WAIT_COUNT=0
 while [[ $WAIT_COUNT -lt $MAX_WAIT ]]; do
   if curl -s "${API_BASE}/health" >/dev/null 2>&1; then
     break
   fi
   sleep 1
-  ((WAIT_COUNT++))
+  WAIT_COUNT=$((WAIT_COUNT + 1))
 done
 
 if [[ $WAIT_COUNT -ge $MAX_WAIT ]]; then
@@ -102,7 +102,7 @@ VERIFY_TOTAL=2
 HEALTH_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "${API_BASE}/health" 2>/dev/null || echo "000")
 if [[ "$HEALTH_RESPONSE" == "200" ]]; then
   ok "GET /health → ${HEALTH_RESPONSE}"
-  ((VERIFY_PASSED++))
+  VERIFY_PASSED=$((VERIFY_PASSED + 1))
 else
   fail "GET /health → ${HEALTH_RESPONSE} (expected 200)"
 fi
@@ -111,7 +111,7 @@ fi
 UOMS_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${API_BASE}/uoms" -H "Content-Type: application/json" -d '{}' 2>/dev/null || echo "000")
 if [[ "$UOMS_RESPONSE" != "404" && "$UOMS_RESPONSE" != "000" ]]; then
   ok "POST /uoms → ${UOMS_RESPONSE} (route exists)"
-  ((VERIFY_PASSED++))
+  VERIFY_PASSED=$((VERIFY_PASSED + 1))
 else
   fail "POST /uoms → ${UOMS_RESPONSE} (route missing!)"
 fi
