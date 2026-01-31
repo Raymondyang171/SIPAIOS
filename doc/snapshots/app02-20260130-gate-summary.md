@@ -1,6 +1,6 @@
 # APP-02 Gate Summary & Demo Walkthrough
 
-> Generated: 2026-01-31
+> Generated: 2026-01-31 | Updated: 2026-01-31 (SVC-OPS-014)
 > Tag: `demo-ok-20260130-app02-app05`
 > Commit: `9211cb1`
 
@@ -47,10 +47,16 @@ Follow this checklist to verify the system after gate pass and demo reset.
 
 ### 2. Dashboard Verification
 
+**Acceptance Criteria**: At least 2 of 3 widgets must display a real numeric value (or `N+` if truncated).
+
 - [ ] Navigate to `/production/dashboard`
-- [ ] Verify "Pending Work Orders" widget loads (number or N/A)
-- [ ] Verify "Purchase Orders" widget loads
-- [ ] Verify "Low Stock Alerts" shows N/A (placeholder)
+- [ ] **Pending Work Orders**: Shows numeric count (e.g., `3`) or `N+`
+  - Data source: `/api/work-orders` → filters `status` ∈ {PENDING, IN_PROGRESS, RELEASED}
+- [ ] **Open Purchase Orders**: Shows numeric count (e.g., `5`) or `N+`
+  - Data source: `/api/purchase-orders` → filters `status` ∈ {DRAFT, APPROVED, CONFIRMED}
+- [ ] **Low Stock Alerts**: Shows "Not available" with tooltip explanation
+  - Note: No data source configured yet; acceptable as N/A for this gate
+- [ ] On API failure: Widget shows `N/A` + `Retry` link (no page crash)
 - [ ] Click Quick Action: "Create Purchase Order" → redirects to `/purchase/orders/create`
 
 ### 3. Work Order Detail Flow
