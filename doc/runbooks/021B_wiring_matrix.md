@@ -90,20 +90,28 @@
 | `/production/work-orders/[id]` | `/api/proxy/work-orders/[id]` | `/work-orders/:id` | GET | `work_orders`, `production_reports` | Get MO detail |
 | `/production/work-orders/[id]` | `/api/proxy/work-orders/[id]` | `/work-orders/:id` | PUT | `work_orders` | Update MO |
 
-### 3.7 Production Module - Reports & Backflush
+### 3.7 Production Module - BOMs
+
+| UI Route | Web Proxy | API Route | HTTP Method | DB Objects | Notes |
+|----------|-----------|-----------|-------------|------------|-------|
+| `/production/boms` | `/api/boms` | `/boms` | GET | `bom_headers`, `bom_versions` | List BOMs (latest version) |
+| `/production/boms` | `/api/boms` | `/boms` | POST | `bom_headers`, `bom_versions`, `bom_lines` | Save new BOM version |
+| `/production/boms` | `/api/boms/[id]` | `/boms/:id` | GET | `bom_headers`, `bom_versions`, `bom_lines` | BOM detail & version history |
+
+### 3.8 Production Module - Reports & Backflush
 
 | UI Route | Web Proxy | API Route | HTTP Method | DB Objects | Notes |
 |----------|-----------|-----------|-------------|------------|-------|
 | - | `/api/proxy/production-reports` | `/production-reports` | POST | `production_reports`, `inventory_transactions` | Report production |
 | - | `/api/proxy/material-precheck` | `/material-precheck` | POST | `inventory_balances` | Pre-check material availability |
 
-### 3.8 Inventory Module
+### 3.9 Inventory Module
 
 | UI Route | Web Proxy | API Route | HTTP Method | DB Objects | Notes |
 |----------|-----------|-----------|-------------|------------|-------|
 | `/inventory/balance` | `/api/proxy/inventory-balance` | `/inventory-balance` | GET | `inventory_balances` | Query balance |
 
-### 3.9 Organization & HR
+### 3.10 Organization & HR
 
 | UI Route | Web Proxy | API Route | HTTP Method | DB Objects | Notes |
 |----------|-----------|-----------|-------------|------------|-------|
