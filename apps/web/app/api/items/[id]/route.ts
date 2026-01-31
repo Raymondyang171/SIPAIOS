@@ -84,56 +84,12 @@ function resolveCompanyIdFromAuth(authHeader: string | null, cookieToken?: strin
   return null;
 }
 
-export async function GET(request: NextRequest) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-  if (!apiBase) {
-    return NextResponse.json(
-      { error: "API URL not configured", uoms: [], count: 0 },
-      { status: 503 }
-    );
-  }
-
-  const cookieStore = await cookies();
-  const token = cookieStore.get("auth_token")?.value;
-
-  const { searchParams } = new URL(request.url);
-
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-    const headers: HeadersInit = {};
-    const authHeader = resolveAuthHeader(request, token);
-    if (authHeader) {
-      headers["Authorization"] = authHeader;
-    }
-
-    const url = new URL(`${apiBase}/uoms`);
-    for (const [key, value] of searchParams.entries()) {
-      url.searchParams.set(key, value);
-    }
-
-    const response = await fetch(url.toString(), {
-      method: "GET",
-      headers,
-      cache: "no-store",
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-    return await toNextResponse(response);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json(
-      { error: "UPSTREAM_UNREACHABLE", message },
-      { status: 502 }
-    );
-  }
-}
-
-export async function POST(request: NextRequest) {
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const { id } = await params;
 
   if (!apiBase) {
     return NextResponse.json(
@@ -172,10 +128,62 @@ export async function POST(request: NextRequest) {
       payload = { ...payload, company_id: companyId };
     }
 
-    const response = await fetch(`${apiBase}/uoms`, {
-      method: "POST",
+    if (
+      payload.uom_id &&
+      !payload.base_uom_id &&
+      typeof payload.uom_id === "string"
+    ) {
+      payload = { ...payload, base_uom_id: payload.uom_id };
+    }
+
+    const response = await fetch(`${apiBase}/items/${id}`, {
+      method: "PUT",
       headers,
       body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+    return await toNextResponse(response);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return NextResponse.json(
+      { error: "UPSTREAM_UNREACHABLE", message },
+      { status: 502 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const { id } = await params;
+
+  if (!apiBase) {
+    return NextResponse.json(
+      { error: "API URL not configured" },
+      { status: 503 }
+    );
+  }
+
+  const cookieStore = await cookies();
+  const token = cookieStore.get("auth_token")?.value;
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    const headers: HeadersInit = {};
+    const authHeader = resolveAuthHeader(request, token);
+    if (authHeader) {
+      headers["Authorization"] = authHeader;
+    }
+
+    const response = await fetch(`${apiBase}/items/${id}`, {
+      method: "DELETE",
+      headers,
       signal: controller.signal,
     });
 

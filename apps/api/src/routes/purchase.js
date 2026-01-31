@@ -512,7 +512,13 @@ router.get('/items', requireAuth, async (req, res) => {
   const { type } = req.query;
 
   try {
-    let sql = `SELECT id, item_no, name, item_type FROM items WHERE company_id = $1`;
+    let sql = `
+      SELECT i.id, i.item_no, i.name, i.item_type, i.base_uom_id,
+             u.code as uom_code, u.name as uom_name
+      FROM items i
+      LEFT JOIN uoms u ON u.id = i.base_uom_id
+      WHERE i.company_id = $1
+    `;
     const params = [company_id];
 
     if (type) {
@@ -545,6 +551,199 @@ router.get('/items', requireAuth, async (req, res) => {
   }
 });
 
+function normalizeItemType(input) {
+  if (!input) {
+    return null;
+  }
+  const raw = String(input).trim().toLowerCase();
+  if (!raw) {
+    return null;
+  }
+  if (raw === 'raw' || raw === 'rm' || raw === 'material') {
+    return 'material';
+  }
+  if (raw === 'wip') {
+    return 'wip';
+  }
+  if (raw === 'fg') {
+    return 'fg';
+  }
+  if (raw === 'service') {
+    return 'service';
+  }
+  return null;
+}
+
+async function resolveUomId(uomId, uomCode) {
+  if (uomId) {
+    const lookup = await query('SELECT id FROM uoms WHERE id = $1', [uomId]);
+    return lookup.rows[0]?.id ?? null;
+  }
+  if (!uomCode) {
+    return null;
+  }
+  const lookup = await query('SELECT id FROM uoms WHERE code = $1', [uomCode]);
+  return lookup.rows[0]?.id ?? null;
+}
+
+/**
+ * POST /items
+ * Body: { item_no, name, type, base_uom_id?, uom_id?, uom, description? }
+ * Response: { id, item_no, name, item_type, base_uom_id }
+ */
+router.post('/items', requireAuth, async (req, res) => {
+  const company_id = req.user.company_id;
+  const { item_no, name, type, base_uom_id, uom, uom_id, description } = req.body;
+
+  if (!item_no || !name || !type || (!base_uom_id && !uom_id && !uom)) {
+    return res.status(400).json({
+      error: 'VALIDATION_ERROR',
+      message: 'item_no, name, type, and base_uom_id/uom are required',
+    });
+  }
+
+  const itemType = normalizeItemType(type);
+  if (!itemType) {
+    return res.status(400).json({
+      error: 'VALIDATION_ERROR',
+      message: 'type must be one of: material, wip, fg, service',
+    });
+  }
+
+  try {
+    const baseUomId = await resolveUomId(base_uom_id || uom_id, uom);
+    if (!baseUomId) {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'uom not found',
+      });
+    }
+
+    const result = await query(
+      `INSERT INTO items (company_id, item_no, name, item_type, base_uom_id, spec)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id, item_no, name, item_type, base_uom_id`,
+      [company_id, item_no, name, itemType, baseUomId, description || null]
+    );
+
+    return res.status(201).json(result.rows[0]);
+  } catch (err) {
+    if (err?.code === '23505') {
+      return res.status(409).json({
+        error: 'CONFLICT',
+        message: 'Item already exists',
+      });
+    }
+    console.error('Create item error:', err);
+    return res.status(500).json({
+      error: 'INTERNAL_ERROR',
+      message: 'An internal error occurred',
+    });
+  }
+});
+
+/**
+ * PUT /items/:id
+ * Body: { item_no, name, type, base_uom_id?, uom_id?, uom, description? }
+ * Response: { id, item_no, name, item_type, base_uom_id }
+ */
+router.put('/items/:id', requireAuth, async (req, res) => {
+  const company_id = req.user.company_id;
+  const { id } = req.params;
+  const { item_no, name, type, base_uom_id, uom, uom_id, description } = req.body;
+
+  if (!item_no || !name || !type || (!base_uom_id && !uom_id && !uom)) {
+    return res.status(400).json({
+      error: 'VALIDATION_ERROR',
+      message: 'item_no, name, type, and base_uom_id/uom are required',
+    });
+  }
+
+  const itemType = normalizeItemType(type);
+  if (!itemType) {
+    return res.status(400).json({
+      error: 'VALIDATION_ERROR',
+      message: 'type must be one of: material, wip, fg, service',
+    });
+  }
+
+  try {
+    const baseUomId = await resolveUomId(base_uom_id || uom_id, uom);
+    if (!baseUomId) {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'uom not found',
+      });
+    }
+
+    const result = await query(
+      `UPDATE items
+       SET item_no = $1, name = $2, item_type = $3, base_uom_id = $4, spec = $5
+       WHERE id = $6 AND company_id = $7
+       RETURNING id, item_no, name, item_type, base_uom_id`,
+      [item_no, name, itemType, baseUomId, description || null, id, company_id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        error: 'NOT_FOUND',
+        message: 'Item not found',
+      });
+    }
+
+    return res.json(result.rows[0]);
+  } catch (err) {
+    if (err?.code === '23505') {
+      return res.status(409).json({
+        error: 'CONFLICT',
+        message: 'Item already exists',
+      });
+    }
+    console.error('Update item error:', err);
+    return res.status(500).json({
+      error: 'INTERNAL_ERROR',
+      message: 'An internal error occurred',
+    });
+  }
+});
+
+/**
+ * DELETE /items/:id
+ * Response: { id }
+ */
+router.delete('/items/:id', requireAuth, async (req, res) => {
+  const company_id = req.user.company_id;
+  const { id } = req.params;
+
+  try {
+    const result = await query(
+      `DELETE FROM items WHERE id = $1 AND company_id = $2 RETURNING id`,
+      [id, company_id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        error: 'NOT_FOUND',
+        message: 'Item not found',
+      });
+    }
+
+    return res.json({ id: result.rows[0].id });
+  } catch (err) {
+    if (err?.code === '23503') {
+      return res.status(409).json({
+        error: 'CONFLICT',
+        message: '被引用無法刪除',
+      });
+    }
+    console.error('Delete item error:', err);
+    return res.status(500).json({
+      error: 'INTERNAL_ERROR',
+      message: 'An internal error occurred',
+    });
+  }
+});
+
 /**
  * GET /uoms
  * Response: { uoms: [...], count: number }
@@ -564,6 +763,132 @@ router.get('/uoms', requireAuth, async (req, res) => {
     });
   } catch (err) {
     console.error('List uoms error:', err);
+    return res.status(500).json({
+      error: 'INTERNAL_ERROR',
+      message: 'An internal error occurred',
+    });
+  }
+});
+
+/**
+ * POST /uoms
+ * Body: { code, name }
+ * Response: { id, code, name }
+ */
+router.post('/uoms', requireAuth, async (req, res) => {
+  const company_id = req.user.company_id;
+  const { code, name } = req.body;
+
+  if (!company_id || !code || !name) {
+    return res.status(400).json({
+      error: 'VALIDATION_ERROR',
+      message: 'company_id, code, and name are required',
+    });
+  }
+
+  try {
+    const result = await query(
+      `INSERT INTO uoms (company_id, code, name)
+       VALUES ($1, $2, $3)
+       RETURNING id, code, name`,
+      [company_id, code, name]
+    );
+
+    return res.status(201).json(result.rows[0]);
+  } catch (err) {
+    if (err?.code === '23505') {
+      return res.status(409).json({
+        error: 'CONFLICT',
+        message: 'UOM already exists',
+      });
+    }
+    console.error('Create uom error:', err);
+    return res.status(500).json({
+      error: 'INTERNAL_ERROR',
+      message: 'An internal error occurred',
+    });
+  }
+});
+
+/**
+ * PUT /uoms/:id
+ * Body: { code, name }
+ * Response: { id, code, name }
+ */
+router.put('/uoms/:id', requireAuth, async (req, res) => {
+  const company_id = req.user.company_id;
+  const { id } = req.params;
+  const { code, name } = req.body;
+
+  if (!company_id || !code || !name) {
+    return res.status(400).json({
+      error: 'VALIDATION_ERROR',
+      message: 'company_id, code, and name are required',
+    });
+  }
+
+  try {
+    const result = await query(
+      `UPDATE uoms
+       SET code = $1, name = $2
+       WHERE id = $3 AND company_id = $4
+       RETURNING id, code, name`,
+      [code, name, id, company_id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        error: 'NOT_FOUND',
+        message: 'UOM not found',
+      });
+    }
+
+    return res.json(result.rows[0]);
+  } catch (err) {
+    if (err?.code === '23505') {
+      return res.status(409).json({
+        error: 'CONFLICT',
+        message: 'UOM already exists',
+      });
+    }
+    console.error('Update uom error:', err);
+    return res.status(500).json({
+      error: 'INTERNAL_ERROR',
+      message: 'An internal error occurred',
+    });
+  }
+});
+
+/**
+ * DELETE /uoms/:id
+ * Response: { id }
+ */
+router.delete('/uoms/:id', requireAuth, async (req, res) => {
+  const company_id = req.user.company_id;
+  const { id } = req.params;
+
+  try {
+    const result = await query(
+      `DELETE FROM uoms WHERE id = $1 AND company_id = $2 RETURNING id`,
+      [id, company_id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        error: 'NOT_FOUND',
+        message: 'UOM not found',
+      });
+    }
+
+    return res.json({ id: result.rows[0].id });
+  } catch (err) {
+    if (err?.code === '23503') {
+      return res.status(409).json({
+        error: 'CONFLICT',
+        message: '被引用無法刪除',
+      });
+    }
+    console.error('Delete uom error:', err);
     return res.status(500).json({
       error: 'INTERNAL_ERROR',
       message: 'An internal error occurred',
