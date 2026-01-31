@@ -5,6 +5,64 @@ BEGIN;
 -- Use service_role for setup & cleanup (RLS policies allow it)
 SET LOCAL ROLE service_role;
 
+-- ============================================================
+-- Pre-check: sys_depts table must exist (from 11_stage2b_org_hr.sql)
+-- ============================================================
+DO $$
+DECLARE
+  has_depts_table boolean;
+  has_depts_code boolean;
+  has_depts_name boolean;
+  has_user_dept_id boolean;
+  has_user_is_active boolean;
+BEGIN
+  -- Check sys_depts table exists
+  SELECT EXISTS(
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'sys_depts'
+  ) INTO has_depts_table;
+
+  IF NOT has_depts_table THEN
+    RAISE EXCEPTION '[VERIFY FAIL] sys_depts table does not exist. Run 11_stage2b_org_hr.sql first.';
+  END IF;
+
+  -- Check sys_depts has required columns
+  SELECT EXISTS(
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'sys_depts' AND column_name = 'code'
+  ) INTO has_depts_code;
+
+  SELECT EXISTS(
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'sys_depts' AND column_name = 'name'
+  ) INTO has_depts_name;
+
+  IF NOT has_depts_code OR NOT has_depts_name THEN
+    RAISE EXCEPTION '[VERIFY FAIL] sys_depts missing required columns (code, name).';
+  END IF;
+
+  -- Check sys_users has dept_id and is_active columns
+  SELECT EXISTS(
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'sys_users' AND column_name = 'dept_id'
+  ) INTO has_user_dept_id;
+
+  SELECT EXISTS(
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'sys_users' AND column_name = 'is_active'
+  ) INTO has_user_is_active;
+
+  IF NOT has_user_dept_id THEN
+    RAISE EXCEPTION '[VERIFY FAIL] sys_users missing dept_id column. Run 11_stage2b_org_hr.sql first.';
+  END IF;
+
+  IF NOT has_user_is_active THEN
+    RAISE EXCEPTION '[VERIFY FAIL] sys_users missing is_active column. Run 11_stage2b_org_hr.sql first.';
+  END IF;
+
+  RAISE NOTICE '[VERIFY OK] sys_depts table and sys_users extensions exist.';
+END $$;
+
 DO $$
 DECLARE
   t_a uuid;
@@ -27,6 +85,8 @@ DECLARE
   has_user_email boolean;
   has_user_display_name boolean;
 BEGIN
+  -- Cleanup sys_depts from previous runs
+  DELETE FROM public.sys_depts WHERE code LIKE 'vfy_%';
   -- Cleanup from previous runs (idempotent)
   SELECT EXISTS(
     SELECT 1
