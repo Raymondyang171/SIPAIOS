@@ -38,7 +38,7 @@ export default function OrgPage() {
   const [deptsError, setDeptsError] = useState<string | null>(null);
   const [usersError, setUsersError] = useState<string | null>(null);
 
-  const [deptForm, setDeptForm] = useState({ tenant_id: "", code: "", name: "" });
+  const [deptForm, setDeptForm] = useState({ code: "", name: "" });
   const [deptActionError, setDeptActionError] = useState<string | null>(null);
   const [deptSaving, setDeptSaving] = useState(false);
   const [editingDeptId, setEditingDeptId] = useState<string | null>(null);
@@ -81,6 +81,24 @@ export default function OrgPage() {
     }
   }, [activeTab, includeInactive]);
 
+  async function readErrorMessage(response: Response) {
+    const rawBody = await response.text();
+    if (!rawBody) {
+      return `API error: ${response.status}`;
+    }
+
+    try {
+      const data = JSON.parse(rawBody) as Record<string, unknown>;
+      const message =
+        (data.message as string | undefined) ||
+        (data.error as string | undefined) ||
+        (data.detail as string | undefined);
+      return message || rawBody;
+    } catch {
+      return rawBody;
+    }
+  }
+
   async function fetchDepts() {
     setDeptsLoading(true);
     setDeptsError(null);
@@ -88,7 +106,7 @@ export default function OrgPage() {
     try {
       const res = await fetch("/api/depts", { cache: "no-store" });
       if (!res.ok) {
-        throw new Error(`API error: ${res.status}`);
+        throw new Error(await readErrorMessage(res));
       }
       const data = await res.json();
       setDepts(data.depts || data || []);
@@ -107,7 +125,7 @@ export default function OrgPage() {
       const url = includeInactive ? "/api/users" : "/api/users?is_active=true";
       const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) {
-        throw new Error(`API error: ${res.status}`);
+        throw new Error(await readErrorMessage(res));
       }
       const data = await res.json();
       setUsers(data.users || data || []);
@@ -122,12 +140,11 @@ export default function OrgPage() {
     event.preventDefault();
     setDeptActionError(null);
 
-    const tenantId = deptForm.tenant_id.trim();
     const code = deptForm.code.trim();
     const name = deptForm.name.trim();
 
-    if (!tenantId || !code || !name) {
-      setDeptActionError("tenant_id, code, and name are required");
+    if (!code || !name) {
+      setDeptActionError("code and name are required");
       return;
     }
 
@@ -136,15 +153,14 @@ export default function OrgPage() {
       const res = await fetch("/api/depts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tenant_id: tenantId, code, name }),
+        body: JSON.stringify({ code, name }),
       });
 
       if (!res.ok) {
-        const errorBody = await res.json().catch(() => ({}));
-        throw new Error(errorBody.message || `API error: ${res.status}`);
+        throw new Error(await readErrorMessage(res));
       }
 
-      setDeptForm({ tenant_id: tenantId, code: "", name: "" });
+      setDeptForm({ code: "", name: "" });
       await fetchDepts();
     } catch (err) {
       setDeptActionError(err instanceof Error ? err.message : "Failed to create department");
@@ -186,8 +202,7 @@ export default function OrgPage() {
       });
 
       if (!res.ok) {
-        const errorBody = await res.json().catch(() => ({}));
-        throw new Error(errorBody.message || `API error: ${res.status}`);
+        throw new Error(await readErrorMessage(res));
       }
 
       setEditingDeptId(null);
@@ -224,8 +239,7 @@ export default function OrgPage() {
       });
 
       if (!res.ok) {
-        const errorBody = await res.json().catch(() => ({}));
-        throw new Error(errorBody.message || `API error: ${res.status}`);
+        throw new Error(await readErrorMessage(res));
       }
 
       setUserForm({ email: "", display_name: "", dept_id: "", is_active: true });
@@ -262,8 +276,7 @@ export default function OrgPage() {
       });
 
       if (!res.ok) {
-        const errorBody = await res.json().catch(() => ({}));
-        throw new Error(errorBody.message || `API error: ${res.status}`);
+        throw new Error(await readErrorMessage(res));
       }
 
       setEditingUserId(null);
@@ -288,8 +301,7 @@ export default function OrgPage() {
       });
 
       if (!res.ok) {
-        const errorBody = await res.json().catch(() => ({}));
-        throw new Error(errorBody.message || `API error: ${res.status}`);
+        throw new Error(await readErrorMessage(res));
       }
 
       await fetchUsers();
@@ -390,15 +402,6 @@ export default function OrgPage() {
                 </button>
               </div>
               <div className="grid grid-cols-1 gap-3">
-                <label className="text-xs text-zinc-500">Tenant ID</label>
-                <input
-                  value={deptForm.tenant_id}
-                  onChange={(event) =>
-                    setDeptForm((prev) => ({ ...prev, tenant_id: event.target.value }))
-                  }
-                  className="w-full rounded border border-zinc-200 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm"
-                  placeholder="tenant UUID"
-                />
                 <label className="text-xs text-zinc-500">Code</label>
                 <input
                   value={deptForm.code}
