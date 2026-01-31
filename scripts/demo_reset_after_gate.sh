@@ -11,6 +11,7 @@ SQL_FILES=(
   "${ROOT_DIR}/apps/api/seeds/004_backflush_data.sql"
   "${ROOT_DIR}/apps/api/seeds/005_purchase_ui_items_type_fix.sql"
   "${ROOT_DIR}/apps/api/seeds/007_purchase_ui_uoms_company_fix.sql"
+  "${ROOT_DIR}/apps/api/seeds/008_demo_master_data_seeds.sql"
 )
 
 info() { echo "[INFO] $1"; }
