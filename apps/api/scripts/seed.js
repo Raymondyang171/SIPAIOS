@@ -63,6 +63,16 @@ async function main() {
       ON CONFLICT (id) DO UPDATE SET code = EXCLUDED.code, name = EXCLUDED.name
     `);
 
+    await client.query(`
+      INSERT INTO public.uoms (company_id, code, name)
+      VALUES
+        ('9b8444cb-d8cb-58d7-8322-22d5c95892a1', 'BOX', 'Box'),
+        ('9b8444cb-d8cb-58d7-8322-22d5c95892a1', 'EA', 'Each'),
+        ('9b8444cb-d8cb-58d7-8322-22d5c95892a1', 'KG', 'Kilogram'),
+        ('9b8444cb-d8cb-58d7-8322-22d5c95892a1', 'PCS', 'Pieces')
+      ON CONFLICT (company_id, code) DO UPDATE SET name = EXCLUDED.name
+    `);
+
     // Create a second company for multi-company testing
     await client.query(`
       INSERT INTO public.sys_tenants (id, slug, name)

@@ -44,13 +44,8 @@ export default function UOMsPage() {
           throw new Error(extractMessage(payload, `API error: ${res.status}`));
         }
         const payload = await readResponseBody(res);
-        const data = payload && typeof payload === "object" ? payload : [];
-        if (Array.isArray(data)) {
-          setUoms(data as UOM[]);
-        } else {
-          const typed = data as Record<string, unknown>;
-          setUoms((typed.uoms as UOM[]) || []);
-        }
+        const data = normalizeUoms(payload);
+        setUoms(data);
       } catch (err) {
         setLoadError(err instanceof Error ? err.message : "Failed to load UOMs");
       } finally {
@@ -478,9 +473,43 @@ function extractMessage(payload: unknown, fallback: string) {
     if (typeof record.error === "string" && record.error.trim()) {
       return record.error;
     }
+    try {
+      return JSON.stringify(record);
+    } catch {
+      return fallback;
+    }
   }
   if (typeof payload === "string" && payload.trim()) {
     return payload;
   }
   return fallback;
+}
+
+function normalizeUoms(payload: unknown): UOM[] {
+  if (!payload) {
+    return [];
+  }
+  const data =
+    Array.isArray(payload) ? payload : (payload as Record<string, unknown>).uoms;
+  if (!Array.isArray(data)) {
+    return [];
+  }
+  return data.map((uom) => {
+    const record = uom as Record<string, unknown>;
+    const code =
+      (record.code as string | undefined) ??
+      (record.uom_code as string | undefined) ??
+      (record.uomCode as string | undefined) ??
+      (record.unit_code as string | undefined) ??
+      (record.unitCode as string | undefined) ??
+      "";
+    const name =
+      (record.name as string | undefined) ??
+      (record.uom_name as string | undefined) ??
+      (record.uomName as string | undefined) ??
+      (record.unit_name as string | undefined) ??
+      (record.unitName as string | undefined) ??
+      "";
+    return { ...record, code, name } as UOM;
+  });
 }

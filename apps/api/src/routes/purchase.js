@@ -574,6 +574,21 @@ function normalizeItemType(input) {
   return null;
 }
 
+function handleUomSchemaMismatch(res, err) {
+  if (process.env.NODE_ENV === 'production') {
+    return false;
+  }
+  if (err?.code !== '42703') {
+    return false;
+  }
+  res.status(500).json({
+    error: 'SCHEMA_MISMATCH',
+    message:
+      'uoms.company_id missing. Run migration: phase1_schema_v1.1_sql/supabase/ops/21_app020a_uoms_company_scope.sql',
+  });
+  return true;
+}
+
 async function resolveUomId(uomId, uomCode) {
   if (uomId) {
     const lookup = await query('SELECT id FROM uoms WHERE id = $1', [uomId]);
@@ -762,6 +777,9 @@ router.get('/uoms', requireAuth, async (req, res) => {
       count: result.rows.length,
     });
   } catch (err) {
+    if (handleUomSchemaMismatch(res, err)) {
+      return;
+    }
     console.error('List uoms error:', err);
     return res.status(500).json({
       error: 'INTERNAL_ERROR',
@@ -779,10 +797,10 @@ router.post('/uoms', requireAuth, async (req, res) => {
   const company_id = req.user.company_id;
   const { code, name } = req.body;
 
-  if (!company_id || !code || !name) {
+  if (!code || !name) {
     return res.status(400).json({
       error: 'VALIDATION_ERROR',
-      message: 'company_id, code, and name are required',
+      message: 'code and name are required',
     });
   }
 
@@ -796,6 +814,9 @@ router.post('/uoms', requireAuth, async (req, res) => {
 
     return res.status(201).json(result.rows[0]);
   } catch (err) {
+    if (handleUomSchemaMismatch(res, err)) {
+      return;
+    }
     if (err?.code === '23505') {
       return res.status(409).json({
         error: 'CONFLICT',
@@ -820,10 +841,10 @@ router.put('/uoms/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
   const { code, name } = req.body;
 
-  if (!company_id || !code || !name) {
+  if (!code || !name) {
     return res.status(400).json({
       error: 'VALIDATION_ERROR',
-      message: 'company_id, code, and name are required',
+      message: 'code and name are required',
     });
   }
 
@@ -845,6 +866,9 @@ router.put('/uoms/:id', requireAuth, async (req, res) => {
 
     return res.json(result.rows[0]);
   } catch (err) {
+    if (handleUomSchemaMismatch(res, err)) {
+      return;
+    }
     if (err?.code === '23505') {
       return res.status(409).json({
         error: 'CONFLICT',
@@ -882,6 +906,9 @@ router.delete('/uoms/:id', requireAuth, async (req, res) => {
 
     return res.json({ id: result.rows[0].id });
   } catch (err) {
+    if (handleUomSchemaMismatch(res, err)) {
+      return;
+    }
     if (err?.code === '23503') {
       return res.status(409).json({
         error: 'CONFLICT',

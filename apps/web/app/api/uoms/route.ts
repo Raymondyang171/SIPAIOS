@@ -122,7 +122,33 @@ export async function GET(request: NextRequest) {
     });
 
     clearTimeout(timeoutId);
-    return await toNextResponse(response);
+    if (!response.ok) {
+      return await toNextResponse(response);
+    }
+
+    const rawBody = await response.text();
+    if (!rawBody) {
+      return new NextResponse(null, { status: response.status });
+    }
+
+    const contentType = response.headers.get("content-type") ?? "text/plain";
+    if (!contentType.includes("application/json")) {
+      return new NextResponse(rawBody, {
+        status: response.status,
+        headers: { "content-type": contentType },
+      });
+    }
+
+    try {
+      const payload = JSON.parse(rawBody) as unknown;
+      const mapped = mapUomsPayload(payload);
+      return NextResponse.json(mapped, { status: response.status });
+    } catch {
+      return new NextResponse(rawBody, {
+        status: response.status,
+        headers: { "content-type": contentType },
+      });
+    }
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json(
@@ -188,4 +214,48 @@ export async function POST(request: NextRequest) {
       { status: 502 }
     );
   }
+}
+
+function mapUomsPayload(payload: unknown) {
+  if (!payload || typeof payload !== "object") {
+    return payload;
+  }
+
+  const record = payload as Record<string, unknown>;
+  const uoms = Array.isArray(record.uoms)
+    ? (record.uoms as Record<string, unknown>[])
+    : Array.isArray(record.data)
+    ? (record.data as Record<string, unknown>[])
+    : Array.isArray(payload)
+    ? (payload as Record<string, unknown>[])
+    : null;
+
+  if (!uoms) {
+    return payload;
+  }
+
+  const mapped = uoms.map((uom) => {
+    const next = { ...uom };
+    const code =
+      (uom.code as string | undefined) ??
+      (uom.uom_code as string | undefined) ??
+      (uom.uomCode as string | undefined) ??
+      (uom.unit_code as string | undefined) ??
+      (uom.unitCode as string | undefined) ??
+      "";
+    const name =
+      (uom.name as string | undefined) ??
+      (uom.uom_name as string | undefined) ??
+      (uom.uomName as string | undefined) ??
+      (uom.unit_name as string | undefined) ??
+      (uom.unitName as string | undefined) ??
+      "";
+    return { ...next, code, name };
+  });
+
+  return {
+    ...(record.uoms ? record : {}),
+    uoms: mapped,
+    count: typeof record.count === "number" ? record.count : mapped.length,
+  };
 }

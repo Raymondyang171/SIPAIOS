@@ -33,6 +33,27 @@ CANDIDATE_SEED_VERIFY_SQLS=(
   "supabase/ops/20260127_13_phase1_verify_min_e2e.sql"
 )
 
+CANDIDATE_RBAC_SQLS=(
+  "${PHASE1_RBAC_SQL:-supabase/ops/10_stage2b_rbac_rls.sql}"
+  "phase1_schema_v1.1_sql/supabase/ops/10_stage2b_rbac_rls.sql"
+  "supabase/ops/10_stage2b_rbac_rls.sql"
+)
+
+CANDIDATE_AUTH_SEED_SQLS=(
+  "${PHASE1_AUTH_SEED_SQL:-apps/api/seeds/001_auth_test_users.sql}"
+  "apps/api/seeds/001_auth_test_users.sql"
+)
+
+CANDIDATE_MASTER_UOMS_SEED_SQLS=(
+  "${PHASE1_MASTER_UOMS_SEED_SQL:-apps/api/seeds/005_master_data_uoms.sql}"
+  "apps/api/seeds/005_master_data_uoms.sql"
+)
+
+CANDIDATE_DEMO_MASTER_DATA_SQLS=(
+  "${PHASE1_DEMO_MASTER_DATA_SQL:-apps/api/seeds/010_demo_master_data.sql}"
+  "apps/api/seeds/010_demo_master_data.sql"
+)
+
 # Phase1 verify SQL is usually in ops directory
 PHASE1_VERIFY_SQL_NAME="${PHASE1_VERIFY_SQL_NAME:-99_phase1_verify.sql}"
 
@@ -125,6 +146,19 @@ fi
 OPS_DIR="$(find_first_existing "${CANDIDATE_OPS_DIRS[@]}")" || die "Cannot find ops dir. Tried: $(join_by ', ' "${CANDIDATE_OPS_DIRS[@]}")"
 SEED_SQL="$(find_first_existing "${CANDIDATE_SEED_SQLS[@]}")" || die "Cannot find seed SQL. Tried: $(join_by ', ' "${CANDIDATE_SEED_SQLS[@]}")"
 SEED_VERIFY_SQL="$(find_first_existing "${CANDIDATE_SEED_VERIFY_SQLS[@]}")" || die "Cannot find seed verify SQL. Tried: $(join_by ', ' "${CANDIDATE_SEED_VERIFY_SQLS[@]}")"
+RBAC_SQL="$(find_first_existing "${CANDIDATE_RBAC_SQLS[@]}")" || die "Cannot find RBAC SQL. Tried: $(join_by ', ' "${CANDIDATE_RBAC_SQLS[@]}")"
+AUTH_SEED_SQL="$(find_first_existing "${CANDIDATE_AUTH_SEED_SQLS[@]}")" || die "Cannot find auth seed SQL. Tried: $(join_by ', ' "${CANDIDATE_AUTH_SEED_SQLS[@]}")"
+MASTER_UOMS_SEED_SQL="$(find_first_existing "${CANDIDATE_MASTER_UOMS_SEED_SQLS[@]}")" || die "Cannot find master UOMs seed SQL. Tried: $(join_by ', ' "${CANDIDATE_MASTER_UOMS_SEED_SQLS[@]}")"
+DEMO_MASTER_DATA_SQL="$(find_first_existing "${CANDIDATE_DEMO_MASTER_DATA_SQLS[@]}")" || die "Cannot find demo master data SQL. Tried: $(join_by ', ' "${CANDIDATE_DEMO_MASTER_DATA_SQLS[@]}")"
+
+UOMS_SCOPE_SQL_PATH=""
+if [[ -n "${PHASE1_UOMS_SCOPE_SQL:-}" ]]; then
+  [[ -f "${PHASE1_UOMS_SCOPE_SQL}" ]] || die "PHASE1_UOMS_SCOPE_SQL is set but file not found: ${PHASE1_UOMS_SCOPE_SQL}"
+  UOMS_SCOPE_SQL_PATH="${PHASE1_UOMS_SCOPE_SQL}"
+else
+  UOMS_SCOPE_SQL_PATH="$(find "$OPS_DIR" -maxdepth 1 -type f -name '21_app020*_uoms_company_scope.sql' | sort | tail -n 1 || true)"
+fi
+[[ -n "$UOMS_SCOPE_SQL_PATH" && -f "$UOMS_SCOPE_SQL_PATH" ]] || die "Cannot find UOMs scope SQL in ops dir=$OPS_DIR (set PHASE1_UOMS_SCOPE_SQL or place 21_app020*_uoms_company_scope.sql)"
 
 # Phase1 verify SQL path resolution (override via env):
 # - PHASE1_VERIFY_SQL: full path to verify SQL file (highest priority)
@@ -169,6 +203,11 @@ mkdir -p "$RUN_DIR"
 LOG_RESTORE="$RUN_DIR/01_restore.log"
 LOG_SEED="$RUN_DIR/02_seed.log"
 LOG_SEED_VERIFY="$RUN_DIR/03_seed_verify.log"
+LOG_RBAC="$RUN_DIR/03a_rbac_rls.log"
+LOG_UOMS_SCOPE="$RUN_DIR/03b_uoms_company_scope.log"
+LOG_AUTH_SEED="$RUN_DIR/03c_auth_seed.log"
+LOG_MASTER_UOMS_SEED="$RUN_DIR/03d_master_uoms_seed.log"
+LOG_DEMO_MASTER_DATA="$RUN_DIR/03e_demo_master_data.log"
 LOG_PHASE1_VERIFY="$RUN_DIR/04_phase1_verify.log"
 LOG_SUMMARY="$RUN_DIR/05_summary.txt"
 
@@ -179,6 +218,11 @@ LOG_SUMMARY="$RUN_DIR/05_summary.txt"
   echo "[INFO] ops_dir=$OPS_DIR"
   echo "[INFO] seed_sql=$SEED_SQL"
   echo "[INFO] seed_verify_sql=$SEED_VERIFY_SQL"
+  echo "[INFO] rbac_sql=$RBAC_SQL"
+  echo "[INFO] uoms_scope_sql=$UOMS_SCOPE_SQL_PATH"
+  echo "[INFO] auth_seed_sql=$AUTH_SEED_SQL"
+  echo "[INFO] master_uoms_seed_sql=$MASTER_UOMS_SEED_SQL"
+  echo "[INFO] demo_master_data_sql=$DEMO_MASTER_DATA_SQL"
   echo "[INFO] phase1_verify_sql=$PHASE1_VERIFY_SQL_PATH"
   echo "[INFO] run_dir=$RUN_DIR"
 } | tee "$LOG_RESTORE" >/dev/null
@@ -224,6 +268,36 @@ echo "[OK] Stage2A restore completed"
   echo "[INFO] seed_rows_ok=${ok}/${total}"
   [[ "$ok" -eq "$total" ]] || exit 2
 ) 2>&1 | tee "$LOG_SEED_VERIFY" >/dev/null
+
+# 3.4) Apply RBAC/RLS minimal schema (auth tables)
+(
+  echo "[STEP] apply rbac/rls schema"
+  psql_file "$RBAC_SQL"
+) 2>&1 | tee "$LOG_RBAC" >/dev/null
+
+# 3.5) Apply UOM company scope migration
+(
+  echo "[STEP] apply uoms company scope"
+  psql_file "$UOMS_SCOPE_SQL_PATH"
+) 2>&1 | tee "$LOG_UOMS_SCOPE" >/dev/null
+
+# 3.6) Seed auth test users
+(
+  echo "[STEP] seed auth test users"
+  psql_file "$AUTH_SEED_SQL"
+) 2>&1 | tee "$LOG_AUTH_SEED" >/dev/null
+
+# 3.7) Seed master UOMs
+(
+  echo "[STEP] seed master uoms"
+  psql_file "$MASTER_UOMS_SEED_SQL"
+) 2>&1 | tee "$LOG_MASTER_UOMS_SEED" >/dev/null
+
+# 3.8) Seed demo master data (suppliers, sites, warehouses, uoms, items)
+(
+  echo "[STEP] seed demo master data"
+  psql_file "$DEMO_MASTER_DATA_SQL"
+) 2>&1 | tee "$LOG_DEMO_MASTER_DATA" >/dev/null
 
 # 4) Phase1 verify
 (
