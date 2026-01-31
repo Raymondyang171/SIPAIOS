@@ -4,6 +4,7 @@ import { pool } from './db.js';
 import authRoutes from './routes/auth.js';
 import purchaseRoutes from './routes/purchase.js';
 import workOrderRoutes from './routes/work-orders.js';
+import orgHrRoutes from './routes/org-hr.js';
 
 const app = express();
 
@@ -38,6 +39,9 @@ app.use(purchaseRoutes);
 
 // Work Order routes (MO)
 app.use(workOrderRoutes);
+
+// Org/HR routes (Depts, Users)
+app.use(orgHrRoutes);
 
 // 404 handler
 app.use((req, res) => {

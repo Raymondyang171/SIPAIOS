@@ -22,6 +22,7 @@ STAGE2A="${ROOT_DIR}/scripts/db/00_replay_phase1_v1_1.sh"
 OPS_DIR="${ROOT_DIR}/phase1_schema_v1.1_sql/supabase/ops"
 
 SQL_10="${OPS_DIR}/10_stage2b_rbac_rls.sql"
+SQL_11="${OPS_DIR}/11_stage2b_org_hr.sql"
 SQL_20="${OPS_DIR}/20_stage2b_seed_rbac.sql"
 SQL_99="${OPS_DIR}/99_stage2b_verify_rbac_rls.sql"
 
@@ -36,8 +37,9 @@ run_psql_in_container () {
 bash "$STAGE2A"
 echo "[OK] Stage2A replay finished"
 
-# 2) Stage2B apply (schema -> seed -> verify)
+# 2) Stage2B apply (schema -> org_hr -> seed -> verify)
 run_psql_in_container "$SQL_10"
+run_psql_in_container "$SQL_11"
 run_psql_in_container "$SQL_20"
 run_psql_in_container "$SQL_99"
 

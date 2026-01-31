@@ -8,6 +8,7 @@ const navItems = [
   { label: "Work Orders", href: "/production/work-orders", icon: "W" },
   { label: "Purchase", href: "/purchase/orders", icon: "P" },
   { label: "Inventory", href: "/production/inventory", icon: "I" },
+  { label: "Org & HR", href: "/production/org", icon: "O" },
   { label: "Reports", href: "/production/reports", icon: "R" },
   { label: "Master Data", href: "/production/master-data", icon: "M" },
 ];
