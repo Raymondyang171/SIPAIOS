@@ -20,16 +20,16 @@ const masterDataItems = [
   {
     title: "Units of Measure",
     description: "Define measurement units (PCS, KG, M, etc.)",
-    href: "/production/master-data",
+    href: "/production/uoms",
     icon: "UM",
-    available: false,
+    available: true,
   },
   {
     title: "Warehouses",
     description: "Manage storage locations and zones",
-    href: "/production/master-data",
+    href: "/production/warehouses",
     icon: "WH",
-    available: false,
+    available: true,
   },
   {
     title: "Bill of Materials",
